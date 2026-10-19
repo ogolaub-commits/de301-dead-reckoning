@@ -785,14 +785,14 @@ const PROVE=[
 ];
 let CUR_PROVE=0, PAD=null, PCTX=null, PHIST=[], PDRAWING=false, PINKD=false;
 function renderProve(){
-  S=null; CUR_PROVE=Math.floor(Math.random()*PROVE.length); const p=PROVE[CUR_PROVE];
+  S=null; const p=PROVE[CUR_PROVE];
   app.innerHTML=`<main class="prove">
-    <div class="bar"><button class="link" data-act="chart">Back to chart</button><span class="tally">Prove it \u00b7 write your working by hand</span></div>
+    <div class="bar"><button class="link" data-act="chart">Back to chart</button><span class="tally">Prove it \u00b7 Question ${CUR_PROVE+1} of ${PROVE.length} \u00b7 write your working by hand</span></div>
     <h1 style="font-family:var(--serif);font-style:italic;font-weight:400">Prove it</h1>
     <p class="lede">Write each step of your solution on the pad, then tap Get feedback. The marker reads your handwriting and tells you how it went. Three significant figures where numbers are needed.</p>
     <p class="prompt">${p.q}</p>
     <div class="padwrap"><canvas id="pad" width="800" height="320" aria-label="Handwriting pad"></canvas><span class="padtag">write here</span></div>
-    <div class="actions" style="margin-top:.7rem"><button class="secondary" id="pundo" type="button">\u21b6 Undo</button><button class="secondary" id="pclear" type="button">Clear</button><button class="primary" id="pcheck" data-act="pcheck">Get feedback</button></div>
+    <div class="actions" style="margin-top:.7rem"><button class="secondary" id="pundo" type="button">\u21b6 Undo</button><button class="secondary" id="pclear" type="button">Clear</button><button class="secondary" id="pnext" type="button">Next question \u2192</button><button class="primary" id="pcheck" data-act="pcheck">Get feedback</button></div>
     <div id="pfb"></div>
   </main>`;
   initPad();
@@ -809,6 +809,7 @@ function initPad(){
   PAD.addEventListener('pointercancel',()=>PDRAWING=false);
   document.getElementById('pclear').onclick=()=>{ PCTX.clearRect(0,0,PAD.width,PAD.height); PHIST=[]; PINKD=false; SFX.click(); };
   document.getElementById('pundo').onclick=()=>{ if(PHIST.length){ PCTX.putImageData(PHIST.pop(),0,0); PINKD=PHIST.length>0; SFX.click(); } };
+  document.getElementById('pnext').onclick=()=>{ CUR_PROVE=(CUR_PROVE+1)%PROVE.length; SFX.tick(); renderProve(); };
 }
 async function proveCheck(){
   const btn=document.getElementById('pcheck');
