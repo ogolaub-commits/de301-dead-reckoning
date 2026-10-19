@@ -750,8 +750,8 @@ if(typeof module!=='undefined'&&module.exports){ module.exports={STATIONS,LEGS,V
    ===================================================================== */
 const app=document.getElementById('app');
 const KEY='dead-reckoning-v1';
-let progress={stars:{},best:{}};
-try{ const s=localStorage.getItem(KEY); if(s){ const p=JSON.parse(s); if(p&&p.stars) progress={stars:p.stars||{},best:p.best||{}}; } }catch(e){}
+let progress={stars:{},best:{},voyage:false};
+try{ const s=localStorage.getItem(KEY); if(s){ const p=JSON.parse(s); if(p&&p.stars) progress={stars:p.stars||{},best:p.best||{},voyage:!!p.voyage}; } }catch(e){}
 const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(progress)); }catch(e){} };
 let S=null, mathReady=false;
 
@@ -770,7 +770,7 @@ const OOPS=['Recalculate the bearing.','Off course — check your working.','The
 const knots=n=> (n<=0?'drift':n*4+' kn');
 function praise(t){ const p=document.getElementById('praise'); if(!p) return; p.textContent=t; p.style.display='block'; p.style.animation='none'; void p.offsetWidth; p.style.animation='drpop 1.3s ease forwards'; clearTimeout(p._t); p._t=setTimeout(()=>p.style.display='none',1350); }
 function confetti(n){ n=n||120; const c=['#A12A77','#1C7A50','#F1DFA6','#4B6072','#CFE6EE']; for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='cf'; d.style.left=(Math.random()*100)+'vw'; d.style.background=c[i%c.length]; d.style.animationDuration=(2+Math.random()*2)+'s'; d.style.animationDelay=(Math.random()*.5)+'s'; document.body.appendChild(d); setTimeout(()=>d.remove(),5000);} }
-function celebrate(icon,title,sub){ SFX.win(); confetti(130); document.getElementById('cbig').textContent=icon; document.getElementById('ctitle').textContent=title; document.getElementById('csub').textContent=sub; document.getElementById('congrats').classList.add('show'); }
+function celebrate(icon,title,sub,btn){ SFX.win(); confetti(130); document.getElementById('cbig').textContent=icon; document.getElementById('ctitle').textContent=title; document.getElementById('csub').textContent=sub; document.getElementById('cbtn').textContent=btn||'Sail on →'; document.getElementById('congrats').classList.add('show'); }
 document.getElementById('cbtn').addEventListener('click',()=>document.getElementById('congrats').classList.remove('show'));
 
 /* ===== Prove it: typed working marked by AI ===== */
@@ -896,6 +896,7 @@ function chartSVG(){
 function renderChart(){
   S=null;
   const tot=totalStars();
+  const allDone=STATIONS.every(s=>(progress.stars[s.id]||0)>0);
   const legs=[1,2,3].map(l=>{
     const rows=STATIONS.map((s,i)=>s.leg!==l?'':`<li><button class="row" data-st="${s.id}"><span class="wpn">${i+1}</span><span class="rmain"><span class="sname">${s.name}</span><span class="topic">${s.topic}</span><span class="place">off ${s.place}</span></span>${starsHTML(progress.stars[s.id]||0)}</button></li>`).join('');
     return `<section class="leg"><h2>Leg ${l}. ${LEGS[l].title}</h2><p class="legsub">${LEGS[l].route}</p><ol class="plan">${rows}</ol></section>`;
@@ -909,6 +910,7 @@ function renderChart(){
     <div class="foot"><span>Waypoints can be sailed in any order.</span><button class="link" data-act="prove">Prove it — show your working</button><button class="link" data-act="reset">Clear my progress</button></div>
   </main>`;
   settle();
+  if(allDone && !progress.voyage){ progress.voyage=true; save(); setTimeout(()=>celebrate('🏆','Voyage complete!',`All ten waypoints reached. Rank: ${rankFor(tot)}.`,'Close'),350); }
 }
 
 /* ---------- plots ---------- */
@@ -1110,7 +1112,7 @@ app.addEventListener('click',e=>{
   else if(a==='checkpanel') checkPanel();
   else if(a==='checknum') checkNum();
   else if(a==='checktune') checkTune();
-  else if(a==='reset'){ if(t.dataset.sure){ progress={stars:{},best:{}}; save(); renderChart(); } else { t.dataset.sure='1'; t.textContent='Press again to clear all stars'; } }
+  else if(a==='reset'){ if(t.dataset.sure){ progress={stars:{},best:{},voyage:false}; save(); renderChart(); } else { t.dataset.sure='1'; t.textContent='Press again to clear all stars'; } }
 });
 app.addEventListener('input',e=>{
   if(!S||S.answered) return;
