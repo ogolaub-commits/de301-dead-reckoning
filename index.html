@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dead Reckoning: a differential equations voyage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#FAFCFB; --panel:#FFFFFF; --shoal:#CFE6EE; --deep:#EBF4F7;
+  --land:#F1DFA6; --land-edge:#8A7836;
+  --ink:#14283A; --ink2:#4B6072; --line:#BCCDD6;
+  --mag:#A12A77; --good:#1C7A50; --goodbg:#DCF0E3; --bad:#B23420; --badbg:#F7E1DC;
+  --serif:'Libre Caslon Text',Georgia,'Times New Roman',serif;
+  --sans:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B1722; --panel:#102331; --shoal:#17394A; --deep:#0F2230;
+    --land:#6F6236; --land-edge:#B7A662;
+    --ink:#D8E4EA; --ink2:#93A8B6; --line:#2B4455;
+    --mag:#E889C2; --good:#6FCF9F; --goodbg:#12382A; --bad:#F2917F; --badbg:#41211C;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B1722; --panel:#102331; --shoal:#17394A; --deep:#0F2230;
+  --land:#6F6236; --land-edge:#B7A662;
+  --ink:#D8E4EA; --ink2:#93A8B6; --line:#2B4455;
+  --mag:#E889C2; --good:#6FCF9F; --goodbg:#12382A; --bad:#F2917F; --badbg:#41211C;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:1.0625rem;line-height:1.55;-webkit-text-size-adjust:100%}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--mag);outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#app.pending{visibility:hidden}
+mjx-container{max-width:100%;overflow-x:auto;overflow-y:hidden}
+
+/* ----- chart page ----- */
+.home{max-width:1040px;margin:0 auto;padding:2.5rem 1.25rem 3rem}
+.mast h1{font-family:var(--serif);font-style:italic;font-weight:400;font-size:clamp(2.7rem,9vw,5.25rem);line-height:.98;letter-spacing:-.015em;margin:0 0 1rem}
+.lede{max-width:38rem;margin:0 0 1.75rem;font-size:1.125rem;color:var(--ink2)}
+.chart{margin:0 0 .5rem}
+.chart svg{display:block;width:100%;height:auto;background:var(--deep);border:1.5px solid var(--ink);outline:1px solid var(--ink);outline-offset:3px}
+.chart figcaption{margin-top:.7rem;font-size:.875rem;color:var(--ink2)}
+.grat{stroke:var(--line);stroke-width:1;fill:none}
+.gratlab{font-family:var(--sans);font-size:12px;fill:var(--ink2)}
+.shoal{fill:none;stroke:var(--shoal);stroke-width:30;stroke-linejoin:round}
+.land{fill:var(--land);stroke:var(--land-edge);stroke-width:1.5;stroke-linejoin:round}
+.sound{font-family:var(--serif);font-style:italic;font-size:12px;fill:var(--ink2);opacity:.75}
+.town{font-family:var(--sans);font-size:13px;font-weight:600;fill:var(--ink)}
+.rose{stroke:var(--mag);fill:none;stroke-width:1;opacity:.7}
+.rose text{font-family:var(--serif);font-size:13px;fill:var(--mag);stroke:none}
+.course{fill:none;stroke:var(--mag);stroke-width:2}
+.course.todo{stroke-dasharray:7 6;opacity:.8}
+.wp{cursor:pointer}
+.wp circle.ring{fill:var(--deep);stroke:var(--mag);stroke-width:2}
+.wp circle.dot{fill:var(--mag)}
+.wp.done circle.ring{fill:var(--mag)}
+.wp.done circle.dot{fill:var(--deep)}
+.wp text{font-family:var(--serif);font-style:italic;font-size:15px;fill:var(--ink)}
+.wp:hover circle.ring{stroke-width:4}
+.ship{fill:var(--ink);stroke:var(--deep);stroke-width:1.5}
+.standing{margin:1.75rem 0 0;font-size:1.0625rem}
+.standing b{font-weight:700}
+.leg{margin-top:2.5rem}
+.leg h2{font-family:var(--serif);font-weight:400;font-size:1.6rem;line-height:1.2;margin:0}
+.legsub{margin:.2rem 0 .9rem;color:var(--ink2);font-size:.95rem}
+.plan{list-style:none;margin:0;padding:0;border-top:1.5px solid var(--ink)}
+.plan li{border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:2.4rem 1fr auto;gap:.25rem 1rem;align-items:center;width:100%;text-align:left;background:none;border:0;padding:.95rem .5rem}
+.row:hover{background:var(--deep)}
+.wpn{font-family:var(--serif);font-size:1.5rem;line-height:1;color:var(--mag)}
+.rmain{display:grid;gap:.1rem;min-width:0}
+.sname{font-weight:600}
+.place{font-family:var(--serif);font-style:italic;color:var(--ink2)}
+.topic{color:var(--ink2);font-size:.925rem}
+.stars{color:var(--mag);font-size:1.15rem;letter-spacing:.08em;white-space:nowrap}
+.stars .dim{opacity:.22}
+.foot{margin-top:2.5rem;display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;justify-content:space-between;color:var(--ink2);font-size:.9rem}
+.link{background:none;border:0;padding:.35rem 0;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.link:hover{color:var(--mag)}
+@media (max-width:700px){
+  .wp text,.sound,.town,.rose{display:none}
+  .wp circle.ring{r:16px}
+  .wp circle.dot{r:6px}
+  .course{stroke-width:4}
+  .ship{transform:scale(1.9);transform-box:fill-box;transform-origin:center}
+}
+
+/* ----- station page ----- */
+.station{max-width:720px;margin:0 auto;padding:1.25rem 1.25rem 3rem}
+.bar{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;border-bottom:1.5px solid var(--ink);padding-bottom:.6rem}
+.tally{font-size:.95rem;color:var(--ink2);white-space:nowrap}
+.tally b{color:var(--ink);font-size:1.1rem}
+.where{margin:1.4rem 0 0}
+.where .place{font-size:1rem}
+.where h1{font-family:var(--serif);font-weight:400;font-size:clamp(1.6rem,5vw,2.1rem);line-height:1.15;margin:.1rem 0 0}
+.pips{display:flex;gap:.45rem;margin:1rem 0 1.5rem;align-items:center}
+.pip{width:1.6rem;height:.4rem;border-radius:2px;background:var(--line)}
+.pip.now{background:var(--ink)}
+.pip.ok{background:var(--good)}
+.pip.no{background:var(--bad)}
+.count{margin:0 0 0 .5rem;font-size:.9rem;color:var(--ink2)}
+.prompt{font-size:1.125rem;margin:0 0 1rem;max-width:40rem}
+.eq{font-size:1.25rem;margin:.25rem 0 1.25rem;padding:1rem;background:var(--deep);border-left:3px solid var(--mag);overflow-x:auto}
+.eq mjx-container{margin:0 !important}
+.note{margin:-.5rem 0 1.25rem;color:var(--ink2)}
+.opts{display:grid;gap:.6rem}
+@media (min-width:600px){.opts.two{grid-template-columns:1fr 1fr}}
+.opt{display:grid;grid-template-columns:1.9rem 1fr;gap:.6rem;align-items:center;text-align:left;background:var(--panel);border:1.5px solid var(--line);border-radius:6px;padding:.8rem .9rem;min-height:3.25rem}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt:disabled{cursor:default}
+.key{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;border:1.5px solid var(--line);font-size:.85rem;font-weight:600;color:var(--ink2)}
+.otx{min-width:0;overflow-x:auto}
+.opt.right{border-color:var(--good);background:var(--goodbg)}
+.opt.right .key{border-color:var(--good);color:var(--good)}
+.opt.wrong{border-color:var(--bad);background:var(--badbg)}
+.opt.wrong .key{border-color:var(--bad);color:var(--bad)}
+.opt.fade{opacity:.55}
+.prow{display:grid;grid-template-columns:11rem 1fr;gap:.5rem 1rem;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--line)}
+@media (max-width:560px){.prow{grid-template-columns:1fr}}
+.plabel{font-weight:600}
+.seg{display:flex;flex-wrap:wrap;gap:.4rem}
+.segb{background:var(--panel);border:1.5px solid var(--line);border-radius:999px;padding:.4rem .95rem;min-width:3rem;min-height:2.6rem}
+.segb:hover:not(:disabled){border-color:var(--ink)}
+.segb[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.segb:disabled{cursor:default}
+.segb.right{background:var(--goodbg);border-color:var(--good);color:var(--ink)}
+.segb.wrong{background:var(--badbg);border-color:var(--bad);color:var(--ink)}
+.primary{background:var(--ink);color:var(--paper);border:0;border-radius:6px;padding:.75rem 1.3rem;font-weight:600;min-height:2.9rem}
+.primary:hover:not(:disabled){background:var(--mag)}
+.primary:disabled{opacity:.4;cursor:default}
+.secondary{background:none;border:1.5px solid var(--ink);border-radius:6px;padding:.7rem 1.2rem;font-weight:600;min-height:2.9rem}
+.secondary:hover{border-color:var(--mag);color:var(--mag)}
+.after{margin-top:1.1rem}
+.numrow{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+.numrow input{width:11rem;max-width:100%;padding:.7rem .8rem;border:1.5px solid var(--ink2);border-radius:6px;background:var(--panel);font-size:1.15rem}
+.unit{font-weight:600;margin-right:.5rem}
+.hint{color:var(--ink2);font-size:.925rem;margin:.6rem 0 0}
+.err{color:var(--bad);font-size:.95rem;margin:.5rem 0 0}
+.plot{display:block;width:100%;height:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;margin:0 0 1rem}
+.plot .ax{stroke:var(--ink2);stroke-width:1}
+.plot .gr{stroke:var(--line);stroke-width:1}
+.plot text{font-family:var(--sans);font-size:12px;fill:var(--ink2)}
+.plot .data{fill:var(--ink)}
+.plot .trace{fill:none;stroke:var(--ink);stroke-width:2.25}
+.plot .mine{fill:none;stroke:var(--mag);stroke-width:2.5}
+.plot .truth{fill:none;stroke:var(--good);stroke-width:2.5;stroke-dasharray:6 4}
+.sliders{display:grid;gap:.9rem;margin-bottom:1rem}
+.sl{display:grid;grid-template-columns:8.5rem 1fr 3rem;gap:.75rem;align-items:center}
+@media (max-width:480px){.sl{grid-template-columns:1fr 3rem}.sl label{grid-column:1 / -1}}
+.sl label{font-weight:600}
+.sl output{font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+.sl input[type=range]{width:100%;accent-color:var(--mag);height:2rem}
+.readout{background:var(--deep);padding:.8rem 1rem;margin:0 0 1rem;font-variant-numeric:tabular-nums}
+.readout p{margin:0}
+.readout .eqt{font-family:var(--serif);font-size:1.2rem}
+.readout .gapline{color:var(--ink2);font-size:.95rem;margin-top:.3rem}
+.fb{margin-top:1.4rem;padding:1rem 1.1rem 1.15rem;border-left:4px solid var(--good);background:var(--goodbg)}
+.fb.bad{border-color:var(--bad);background:var(--badbg)}
+.fb h2{margin:0 0 .4rem;font-size:1.15rem}
+.fb .gain{font-weight:400;font-size:.95rem;margin-left:.5rem}
+.fb .why{margin:0 0 1rem;max-width:40rem}
+.fb .why p{margin:0 0 .5rem}
+@media (prefers-reduced-motion:no-preference){.fb{animation:rise .22s ease-out}}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ----- result page ----- */
+.result{max-width:720px;margin:0 auto;padding:3rem 1.25rem}
+.result .place{font-size:1.05rem}
+.result h1{font-family:var(--serif);font-style:italic;font-weight:400;font-size:clamp(2.2rem,7vw,3.4rem);line-height:1.05;margin:.2rem 0 1rem}
+.result .stars{font-size:2.4rem}
+.result .sum{font-size:1.125rem;margin:1rem 0 .4rem}
+.result .pips{margin:.8rem 0 2rem}
+.actions{display:flex;flex-wrap:wrap;gap:.75rem}
+.mathnote{max-width:720px;margin:0 auto;padding:.6rem 1.25rem;background:var(--badbg);color:var(--ink);font-size:.925rem}
+
+/* ----- enhancements: audio, celebration, hints, prove ----- */
+#drmute{background:none;border:1.5px solid var(--line);color:var(--ink);border-radius:999px;padding:.2rem .7rem;font-size:.95rem;min-height:2.2rem}
+.praise{position:fixed;left:50%;top:18%;transform:translateX(-50%);font-family:var(--serif);font-weight:700;font-size:clamp(1.3rem,5vw,2rem);color:var(--good);text-shadow:0 2px 14px #0002;pointer-events:none;z-index:60;display:none;text-align:center;width:92%}
+@keyframes drpop{0%{opacity:0;transform:translate(-50%,12px) scale(.85)}18%{opacity:1;transform:translate(-50%,0) scale(1.05)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-24px) scale(1)}}
+.congrats{position:fixed;inset:0;background:#0b1722cc;display:none;place-items:center;z-index:70;padding:1.2rem}
+.congrats.show{display:grid}
+.congrats .box{background:var(--panel);border:2px solid var(--mag);border-radius:18px;padding:1.6rem 1.4rem;max-width:26rem;width:100%;text-align:center;box-shadow:0 24px 60px #0006}
+.congrats h2{font-family:var(--serif);font-size:1.7rem;margin:.3rem 0 .5rem;color:var(--mag)}
+.congrats .big{font-size:3rem;line-height:1}
+.cf{position:fixed;top:-14px;width:9px;height:14px;border-radius:2px;z-index:65;pointer-events:none;animation:drfall linear forwards}
+@keyframes drfall{to{transform:translateY(106vh) rotate(720deg);opacity:.85}}
+.logbook{margin:.6rem 0 1rem;padding:.7rem .9rem;background:var(--deep);border-left:3px solid var(--mag);border-radius:.4rem;font-size:.98rem}
+.logbook b{color:var(--mag)}
+.speed{font-size:.95rem;color:var(--ink2);white-space:nowrap}
+.prove{max-width:720px;margin:0 auto;padding:1.5rem 1.25rem}
+.prove .padwrap{position:relative}
+.prove canvas{width:100%;height:320px;touch-action:none;background:#fff;border:1.5px solid var(--line);border-radius:.6rem;display:block;margin-top:.6rem;cursor:crosshair}
+.prove .padtag{position:absolute;top:.9rem;left:.9rem;color:#9FB0BC;font-family:var(--serif);font-style:italic;font-size:.9rem;pointer-events:none}
+.prove .actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.prove .actions .primary{margin-left:auto}
+@media (prefers-reduced-motion:reduce){.praise,.cf,.congrats .box{animation:none!important}}
+.lesson{max-width:640px;margin:0 auto 1.1rem;background:var(--panel);border:1px solid var(--line);border-radius:.7rem;padding:.7rem .7rem .5rem}
+.lessonhead{display:flex;align-items:baseline;justify-content:space-between;padding:.1rem .25rem .55rem}
+.lessonlab{font-family:var(--serif);font-style:italic;font-size:1.02rem;color:var(--mag)}
+.lessonhint{font-size:.8rem;color:var(--ink2)}
+.lessonvid{width:100%;display:block;border-radius:.5rem;background:#000;aspect-ratio:16/9}
+.wlist{display:flex;flex-wrap:wrap;gap:.4rem;padding:.6rem .1rem 0}
+.wtab{background:var(--panel);border:1.5px solid var(--line);color:var(--ink);font-size:.85rem;padding:.32rem .7rem;border-radius:999px;cursor:pointer}
+.wtab.on{background:var(--mag);border-color:var(--mag);color:#fff}
+.lessoncap{margin:.55rem .2rem .1rem;color:var(--ink2);font-size:.9rem;text-align:center}
+.deeper{max-width:640px;margin:0 auto 1.1rem;background:var(--panel);border:1px solid var(--line);border-radius:.7rem;overflow:hidden}
+.deeper>summary{cursor:pointer;padding:.7rem .9rem;font-family:var(--serif);font-style:italic;font-size:1.02rem;color:var(--ink);list-style:none;display:flex;align-items:center;gap:.5rem}
+.deeper>summary::-webkit-details-marker{display:none}
+.deeper>summary::before{content:'\25B8';transition:transform .15s;color:var(--mag)}
+.deeper[open]>summary::before{transform:rotate(90deg)}
+.ytcount{margin-left:auto;background:var(--mag);color:#fff;font-size:.72rem;font-style:normal;border-radius:999px;padding:.05rem .5rem}
+.ytlist{display:grid;gap:.6rem;padding:.1rem .7rem .8rem}
+.ytcard{display:flex;align-items:center;gap:.7rem;text-align:left;background:rgba(0,0,0,.02);border:1px solid var(--line);border-radius:.5rem;padding:.45rem;cursor:pointer;width:100%;font:inherit;color:var(--ink)}
+.ytcard:hover{border-color:#c7cdf0;background:rgba(161,42,119,.05)}
+.ytthumb{flex:0 0 120px;width:120px;aspect-ratio:16/9;border-radius:.35rem;overflow:hidden;background:#000;position:relative}
+.ytthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ytthumb::after{content:'\25B6';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.ytcard.playing{display:block;padding:0;background:#000;border-color:#000}
+.ytcard.playing iframe{width:100%;aspect-ratio:16/9;border:0;display:block;border-radius:.5rem}
+.yttitle{font-size:.94rem;line-height:1.3}
+</style>
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+  svg:{fontCache:'local'},
+  options:{enableMenu:false},
+  startup:{typeset:false,ready(){MathJax.startup.defaultReady();MathJax.startup.promise.then(function(){document.dispatchEvent(new Event('mathready'));});}}
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+</head>
+<body>
+<div id="mathnote" class="mathnote" hidden>Equation typesetting did not load, so equations appear as LaTeX source. Reload the page with a connection to fix this.</div>
+<div id="app"></div>
+<div class="praise" id="praise" aria-live="polite"></div>
+<div class="congrats" id="congrats"><div class="box"><div class="big" id="cbig">🎉</div><h2 id="ctitle">Waypoint reached</h2><p id="csub"></p><button class="primary" id="cbtn">Sail on →</button></div></div>
+
+<script id="content">
+/* =====================================================================
+   Content: every problem generator. No DOM access in this block.
+   ===================================================================== */
+const R=String.raw;
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const sample=(a,n)=>shuffle(a).slice(0,n);
+const m=t=>'\\('+t+'\\)';
+const num=x=>String(Math.round(x*1e6)/1e6);
+// linear combination: [[coef, body], ...] -> "2y''-3y'+y"
+function lin(terms){
+  let s='';
+  for(const [c,b] of terms){
+    if(!c) continue;
+    const a=Math.abs(c);
+    s+=(c<0?'-':(s?'+':''))+((a===1&&b)?'':num(a))+b;
+  }
+  return s||'0';
+}
+const ex=(r,v='x')=>r===1?`e^{${v}}`:r===-1?`e^{-${v}}`:`e^{${num(r)}${v}}`;
+const kx=(k,v='x')=>k===1?v:`${num(k)}${v}`;
+const ce=(K,s)=>(K===1?'':K===-1?'-':num(K))+ex(s);
+const Y1=R`\frac{dy}{dx}`, Y2=R`\frac{d^{2}y}{dx^{2}}`;
+const sig=(x,n=3)=>Number(x.toPrecision(n)).toLocaleString('en-GB',{maximumFractionDigits:6});
+
+function mcq(prompt,correct,distractors,explain,extra){
+  const seen=new Set([correct]),ds=[];
+  for(const d of distractors){ if(d==null||seen.has(d)) continue; seen.add(d); ds.push(d); if(ds.length===3) break; }
+  const options=shuffle([correct,...ds]);
+  return Object.assign({type:'mcq',prompt,options,accept:[options.indexOf(correct)],explain},extra||{});
+}
+
+/* ---------------- Unit 1 ---------------- */
+const CLASSIFY=[
+ {tex:R`\frac{dy}{dx}+3y=e^{x}`,type:'ODE',order:1,lin:true,dep:'y',vars:['x','y'],
+  why:R`One independent variable \(x\), so it is an ODE. The highest derivative is the first, and \(y\) and \(\frac{dy}{dx}\) appear only to the first power.`},
+ {tex:R`\frac{d^{2}y}{dx^{2}}+4\frac{dy}{dx}+4y=0`,type:'ODE',order:2,lin:true,dep:'y',vars:['x','y'],
+  why:R`The highest derivative is the second. Constant coefficients, and no products or powers of \(y\) or its derivatives.`},
+ {tex:R`\left(\frac{dy}{dx}\right)^{2}+y=x`,type:'ODE',order:1,lin:false,dep:'y',vars:['x','y'],
+  why:R`Order counts the highest derivative, not its power, so the order is 1. Squaring the derivative makes the equation non-linear.`},
+ {tex:R`y\frac{d^{2}y}{dx^{2}}+\frac{dy}{dx}=0`,type:'ODE',order:2,lin:false,dep:'y',vars:['x','y'],
+  why:R`The dependent variable \(y\) multiplies its own second derivative. That product makes the equation non-linear.`},
+ {tex:R`\frac{\partial u}{\partial t}=k\frac{\partial^{2}u}{\partial x^{2}}`,type:'PDE',order:2,lin:true,dep:'u',vars:['t','u','x'],
+  why:R`\(u\) depends on two independent variables, \(x\) and \(t\), so the derivatives are partial: this is the heat equation. The highest derivative is second order.`},
+ {tex:R`\frac{\partial^{2}u}{\partial x^{2}}+\frac{\partial^{2}u}{\partial y^{2}}=0`,type:'PDE',order:2,lin:true,dep:'u',vars:['u','x','y'],
+  why:R`Laplace's equation. \(u\) depends on both \(x\) and \(y\), and each term is a second partial derivative.`},
+ {tex:R`\frac{d^{3}y}{dx^{3}}+x\frac{dy}{dx}=\sin x`,type:'ODE',order:3,lin:true,dep:'y',vars:['x','y'],
+  why:R`A coefficient that depends on \(x\) does not break linearity. Only the way \(y\) and its derivatives appear matters.`},
+ {tex:R`\frac{d^{2}\theta}{dt^{2}}+\frac{g}{l}\sin\theta=0`,type:'ODE',order:2,lin:false,dep:R`\theta`,vars:[R`\theta`,'t','l'],
+  why:R`The pendulum equation. \(\sin\theta\) is a non-linear function of the dependent variable \(\theta\); \(g\) and \(l\) are constants.`},
+ {tex:R`L\frac{di}{dt}+Ri=E`,type:'ODE',order:1,lin:true,dep:'i',vars:['i','t','R'],
+  why:R`The current \(i\) depends on time \(t\). \(L\), \(R\) and \(E\) are constants of the circuit.`},
+ {tex:R`EI\frac{d^{4}y}{dx^{4}}=w`,type:'ODE',order:4,lin:true,dep:'y',vars:['w','x','y'],
+  why:R`The beam equation: the fourth derivative of the deflection \(y\), with constant stiffness \(EI\) and constant load \(w\).`},
+ {tex:R`\frac{\partial u}{\partial t}+u\frac{\partial u}{\partial x}=0`,type:'PDE',order:1,lin:false,dep:'u',vars:['t','u','x'],
+  why:R`Two independent variables make it a PDE. The product of \(u\) with its own derivative makes it non-linear.`},
+ {tex:R`\frac{dN}{dt}=kN\left(1-\frac{N}{M}\right)`,type:'ODE',order:1,lin:false,dep:'N',vars:['M','N','t'],
+  why:R`Expanding the bracket gives an \(N^{2}\) term, so the logistic equation is non-linear.`},
+ {tex:R`x^{2}\frac{d^{2}y}{dx^{2}}+x\frac{dy}{dx}+y=0`,type:'ODE',order:2,lin:true,dep:'y',vars:['x','y'],
+  why:R`The variable coefficients \(x^{2}\) and \(x\) are allowed in a linear equation, because \(y\), \(y'\) and \(y''\) each appear to the first power.`},
+ {tex:R`\frac{dy}{dx}=xy^{2}`,type:'ODE',order:1,lin:false,dep:'y',vars:['x','y'],
+  why:R`\(y^{2}\) is a power of the dependent variable, so the equation is non-linear.`},
+ {tex:R`\frac{\partial^{2}u}{\partial t^{2}}=c^{2}\frac{\partial^{2}u}{\partial x^{2}}`,type:'PDE',order:2,lin:true,dep:'u',vars:['t','u','x'],
+  why:R`The wave equation: \(u\) depends on position \(x\) and time \(t\).`},
+ {tex:R`\frac{d^{2}q}{dt^{2}}+5\frac{dq}{dt}+6q=12\cos t`,type:'ODE',order:2,lin:true,dep:'q',vars:['q','t'],
+  why:R`A forcing term that depends only on \(t\) leaves the equation linear.`},
+ {tex:R`\left(\frac{d^{2}y}{dx^{2}}\right)^{3}+\frac{dy}{dx}=x`,type:'ODE',order:2,lin:false,dep:'y',vars:['x','y'],
+  why:R`The order is 2, the highest derivative present. The cube is the degree, and it makes the equation non-linear.`},
+ {tex:R`\frac{dv}{dt}=g-kv^{2}`,type:'ODE',order:1,lin:false,dep:'v',vars:['k','t','v'],
+  why:R`Drag proportional to \(v^{2}\) makes the equation non-linear in the dependent variable \(v\).`}
+];
+function qClassify(it){
+  return {type:'panel',prompt:'Classify this equation on all four counts.',tex:it.tex,rows:[
+    {label:'Type',opts:['ODE','PDE'],ans:it.type},
+    {label:'Order',opts:['1','2','3','4'],ans:String(it.order)},
+    {label:'Linearity',opts:['Linear','Non-linear'],ans:it.lin?'Linear':'Non-linear'},
+    {label:'Dependent variable',opts:shuffle(it.vars).map(m),ans:m(it.dep)}
+  ],explain:it.why};
+}
+
+const F1=[
+()=>mcq(R`Lionfish on a reef multiply at a rate proportional to the number \(P\) already there. Which equation says this?`,
+  m(R`\frac{dP}{dt}=kP`),[R`\frac{dP}{dt}=kt`,R`\frac{dP}{dt}=k`,R`\frac{dP}{dt}=\frac{k}{P}`].map(m),
+  R`The rate of change of \(P\) is \(\frac{dP}{dt}\), and proportional to \(P\) means \(kP\) with \(k>0\).`),
+()=>mcq(R`A cup of coffee at temperature \(T\) stands in a room at constant temperature \(T_{s}\). It cools at a rate proportional to how much hotter it is than the room, with \(k>0\). Which equation models it?`,
+  m(R`\frac{dT}{dt}=-k(T-T_{s})`),[R`\frac{dT}{dt}=-kT`,R`\frac{dT}{dt}=k(T-T_{s})`,R`\frac{dT}{dt}=-kT_{s}`].map(m),
+  R`Newton's law of cooling. The excess temperature is \(T-T_{s}\), and the minus sign makes \(T\) fall while \(T>T_{s}\).`),
+()=>mcq(R`A radioactive source of mass \(m\) decays at a rate proportional to the mass remaining, with \(k>0\). Which equation models it?`,
+  m(R`\frac{dm}{dt}=-km`),[R`\frac{dm}{dt}=km`,R`\frac{dm}{dt}=-kt`,R`\frac{dm}{dt}=-\frac{k}{m}`].map(m),
+  R`Decay means \(m\) is decreasing, so its rate of change is negative: \(\frac{dm}{dt}=-km\).`),
+()=>mcq(R`A fuel tank drains through a hole in its base. The depth \(h\) falls at a rate proportional to the square root of the depth, with \(k>0\). Which equation models it?`,
+  m(R`\frac{dh}{dt}=-k\sqrt{h}`),[R`\frac{dh}{dt}=-kh^{2}`,R`\frac{dh}{dt}=k\sqrt{h}`,R`\frac{dh}{dt}=-k\sqrt{t}`].map(m),
+  R`Torricelli's law: the outflow speed is proportional to \(\sqrt{h}\). The depth is falling, so the sign is negative.`),
+()=>mcq(R`A coil of inductance \(L\) and resistance \(R\) is connected to a constant e.m.f. \(E\). The voltage across the inductance is \(L\frac{di}{dt}\) and across the resistance is \(Ri\). Which equation gives the current \(i\)?`,
+  m(R`L\frac{di}{dt}+Ri=E`),[R`R\frac{di}{dt}+Li=E`,R`L\frac{di}{dt}-Ri=E`,R`L\frac{di}{dt}+Ri=0`].map(m),
+  R`Kirchhoff's voltage law: the voltage drops around the loop add up to the applied e.m.f.`),
+()=>mcq(R`A capacitor \(C\) charges through a resistor \(R\) from a constant e.m.f. \(E\). The current is \(i=\frac{dq}{dt}\) and the capacitor voltage is \(\frac{q}{C}\). Which equation gives the charge \(q\)?`,
+  m(R`R\frac{dq}{dt}+\frac{q}{C}=E`),[R`R\frac{dq}{dt}+Cq=E`,R`C\frac{dq}{dt}+\frac{q}{R}=E`,R`R\frac{dq}{dt}-\frac{q}{C}=E`].map(m),
+  R`Kirchhoff: \(Ri+\frac{q}{C}=E\), and the current is the rate of flow of charge, \(i=\frac{dq}{dt}\).`),
+()=>mcq(R`A lifeboat of mass \(m\) is dropped from its davits. Air resistance is proportional to its speed \(v\), with constant \(k\). Taking downward as positive, which equation gives \(v\)?`,
+  m(R`m\frac{dv}{dt}=mg-kv`),[R`m\frac{dv}{dt}=mg+kv`,R`m\frac{dv}{dt}=-kv`,R`\frac{dv}{dt}=mg-kv`].map(m),
+  R`Newton's second law: mass times acceleration equals the weight \(mg\) down minus the resistance \(kv\) up.`),
+()=>mcq(R`A tug of mass \(m\) stops its engines. The water resists its motion with a force proportional to the square of its speed \(v\), with constant \(k\). Which equation gives \(v\)?`,
+  m(R`m\frac{dv}{dt}=-kv^{2}`),[R`m\frac{dv}{dt}=-kv`,R`m\frac{dv}{dt}=kv^{2}`,R`\frac{dv}{dt}=-kmv^{2}`].map(m),
+  R`The only horizontal force is the resistance \(kv^{2}\), and it acts against the motion.`),
+()=>{ const V=pick([100,200,500]),r=pick([4,5,10]),c=pick([2,3]);
+  return mcq(R`A tank holds ${V} litres of brine. Brine containing ${c} g of salt per litre flows in at ${r} litres per minute, and the well-stirred mixture flows out at the same rate. If \(x\) grams of salt are in the tank at time \(t\) minutes, which equation holds?`,
+  m(R`\frac{dx}{dt}=${c*r}-\frac{x}{${V/r}}`),[R`\frac{dx}{dt}=${c*r}-${r}x`,R`\frac{dx}{dt}=${c}-\frac{x}{${V}}`,R`\frac{dx}{dt}=${c*r}-\frac{x}{${V}}`].map(m),
+  R`Rate in: \(${c}\times${r}=${c*r}\) g/min. Rate out: the concentration \(\frac{x}{${V}}\) g/l times ${r} l/min, which is \(\frac{x}{${V/r}}\). The rate of change is rate in minus rate out.`); },
+()=>mcq(R`At every point \((x,y)\) on a curve, the gradient equals twice the \(x\)-coordinate divided by the \(y\)-coordinate. Which equation describes the curve?`,
+  m(R`\frac{dy}{dx}=\frac{2x}{y}`),[R`\frac{dy}{dx}=2xy`,R`\frac{dy}{dx}=\frac{2y}{x}`,R`\frac{dx}{dy}=\frac{2x}{y}`].map(m),
+  R`The gradient is \(\frac{dy}{dx}\). Twice \(x\), divided by \(y\), is \(\frac{2x}{y}\).`),
+()=>{ const n=pick([2,3,4]);
+  return mcq(R`Every curve in the family \(y=Ax^{${n}}\) satisfies one first-order equation that does not contain \(A\). Which is it?`,
+  m(R`x\frac{dy}{dx}=${n}y`),[R`\frac{dy}{dx}=${n}y`,R`\frac{dy}{dx}=${n}x^{${n-1}}`,R`x\frac{dy}{dx}=y`].map(m),
+  R`Differentiate: \(\frac{dy}{dx}=${n}Ax^{${n-1}}\). Multiply by \(x\) to get \(${n}Ax^{${n}}=${n}y\), which eliminates \(A\).`); },
+()=>{ const k=pick([2,3,5]);
+  return mcq(R`Every curve in the family \(y=Ae^{${k}x}\) satisfies one first-order equation that does not contain \(A\). Which is it?`,
+  m(R`\frac{dy}{dx}=${k}y`),[R`\frac{dy}{dx}=${k}x`,R`\frac{dy}{dx}=y`,R`\frac{dy}{dx}=${k}Ae^{${k}x}`].map(m),
+  R`Differentiate: \(\frac{dy}{dx}=${k}Ae^{${k}x}=${k}y\). The answer must not contain the arbitrary constant.`); },
+()=>mcq(R`A rumour spreads through a campus of \(N\) students. The number \(x\) who have heard it grows at a rate proportional to the product of those who have heard it and those who have not. Which equation models it?`,
+  m(R`\frac{dx}{dt}=kx(N-x)`),[R`\frac{dx}{dt}=kx`,R`\frac{dx}{dt}=k(N-x)`,R`\frac{dx}{dt}=kxN`].map(m),
+  R`Those who have heard: \(x\). Those who have not: \(N-x\). The rate is proportional to the product of the two.`)
+];
+
+const X1=R`\frac{dx}{dt}`,X2=R`\frac{d^{2}x}{dt^{2}}`,Q1=R`\frac{dq}{dt}`,Q2=R`\frac{d^{2}q}{dt^{2}}`;
+const F2=[
+()=>{ const M=pick([1,2,3,5]),c=pick([2,4,6,8]),k=pick([10,16,20,26,50]),forced=Math.random()<0.5,F=pick([10,12,20]),w=pick([2,3,4]);
+  const rhs=forced?`${F}\\cos ${w}t`:'0';
+  const L=(a,b,d)=>lin([[a,X2],[b,X1],[d,'x']]);
+  return mcq(R`A ${M} kg mass moves on a spring of stiffness ${k} N/m against a damper of coefficient ${c} N s/m. \(x\) is its displacement from equilibrium. ${forced?R`It is driven by a force of \(${F}\cos ${w}t\) newtons.`:'No external force acts.'} Which equation governs the motion?`,
+  m(L(M,c,k)+'='+rhs),[m(L(k,c,M)+'='+rhs),m(L(M,k,c)+'='+rhs),m(L(M,-c,k)+'='+rhs),forced?m(L(M,c,k)+'=0'):null],
+  R`Newton's second law: \(m\frac{d^{2}x}{dt^{2}}=-kx-c\frac{dx}{dt}+F(t)\). Mass goes with acceleration, the damping coefficient with velocity, and the stiffness with displacement.`); },
+()=>{ const Lh=pick([0.5,1,2]),Rr=pick([4,6,10,20]),[C,inv]=pick([[0.01,100],[0.02,50],[0.05,20],[0.1,10]]),E=pick([12,24,100]);
+  const L=(a,b,d,e)=>lin([[a,Q2],[b,Q1],[d,'q']])+'='+e;
+  return mcq(R`A series circuit has inductance ${Lh} H, resistance ${Rr} Ω and capacitance ${C} F, driven by a constant ${E} V supply. Which equation gives the charge \(q\) on the capacitor?`,
+  m(L(Lh,Rr,inv,E)),[m(L(Lh,Rr,C,E)),m(L(Rr,Lh,inv,E)),m(L(Lh,Rr,inv,0))],
+  R`Kirchhoff's voltage law: \(L\frac{d^{2}q}{dt^{2}}+R\frac{dq}{dt}+\frac{q}{C}=E\). Here \(\frac{1}{C}=${inv}\).`); },
+()=>{ let r1,r2; do{ r1=rnd(-4,4); r2=rnd(-4,4);}while(!r1||!r2||r1>=r2||r1===-r2);
+  const S=r1+r2,P=r1*r2,L=(b,c)=>m(lin([[1,Y2],[b,Y1],[c,'y']])+'=0');
+  return mcq(R`Every curve \(y=A${ex(r1)}+B${ex(r2)}\) satisfies one second-order linear equation free of \(A\) and \(B\). Which is it?`,
+  L(-S,P),[L(S,P),L(-S,-P),L(-P,S),L(P,-S)],
+  R`Roots \(${r1}\) and \(${r2}\) give the auxiliary equation \((m${r1<0?'+':'-'}${Math.abs(r1)})(m${r2<0?'+':'-'}${Math.abs(r2)})=0\), which is \(${lin([[1,'m^{2}'],[-S,'m'],[P,'']])}=0\). Replace \(m^{2}\), \(m\), \(1\) by \(y''\), \(y'\), \(y\).`); },
+()=>{ const r=pick([-4,-3,-2,-1,1,2,3,4]),L=(b,c)=>m(lin([[1,Y2],[b,Y1],[c,'y']])+'=0');
+  return mcq(R`Every curve \(y=(A+Bx)${ex(r)}\) satisfies one second-order linear equation free of \(A\) and \(B\). Which is it?`,
+  L(-2*r,r*r),[L(2*r,r*r),L(0,-r*r),L(-2*r,-r*r),L(-r,r*r)],
+  R`The form \((A+Bx)e^{mx}\) comes from a repeated root \(m=${r}\), so the auxiliary equation is \((m${r<0?'+':'-'}${Math.abs(r)})^{2}=0\), which is \(${lin([[1,'m^{2}'],[-2*r,'m'],[r*r,'']])}=0\).`); },
+()=>{ const al=pick([-3,-2,-1,1,2,3]),be=pick([1,2,3,4]),L=(b,c)=>m(lin([[1,Y2],[b,Y1],[c,'y']])+'=0');
+  return mcq(R`Every curve \(y=${ex(al)}(A\cos ${kx(be)}+B\sin ${kx(be)})\) satisfies one second-order linear equation free of \(A\) and \(B\). Which is it?`,
+  L(-2*al,al*al+be*be),[L(2*al,al*al+be*be),L(-2*al,al*al-be*be),L(-2*be,al*al+be*be),L(0,be*be)],
+  R`The roots are \(m=${al}\pm ${be===1?'':be}i\). Their sum is \(${2*al}\) and their product is \(${al*al}+${be*be}=${al*al+be*be}\), so the auxiliary equation is \(${lin([[1,'m^{2}'],[-2*al,'m'],[al*al+be*be,'']])}=0\).`); },
+()=>{ const w=pick([2,3,4,5]),L=(b,c)=>m(lin([[1,Y2],[b,Y1],[c,'y']])+'=0');
+  return mcq(R`Every curve \(y=A\cos ${w}x+B\sin ${w}x\) satisfies one second-order linear equation free of \(A\) and \(B\). Which is it?`,
+  L(0,w*w),[L(0,-w*w),L(0,w),L(w*w,0)],
+  R`Differentiate twice: \(y''=-${w*w}(A\cos ${w}x+B\sin ${w}x)=-${w*w}y\).`); },
+()=>mcq(R`A simple pendulum of length \(l\) swings through small angles \(\theta\), so that \(\sin\theta\approx\theta\). Which equation governs it?`,
+  m(R`\frac{d^{2}\theta}{dt^{2}}+\frac{g}{l}\theta=0`),[R`\frac{d^{2}\theta}{dt^{2}}+\frac{l}{g}\theta=0`,R`\frac{d^{2}\theta}{dt^{2}}-\frac{g}{l}\theta=0`,R`\frac{d\theta}{dt}+\frac{g}{l}\theta=0`].map(m),
+  R`Along the arc, \(ml\frac{d^{2}\theta}{dt^{2}}=-mg\sin\theta\). For small angles this becomes \(\frac{d^{2}\theta}{dt^{2}}=-\frac{g}{l}\theta\): the restoring term has a plus sign on the left.`),
+()=>mcq(R`A cylindrical marker buoy of mass \(m\) and cross-section \(A\) bobs in sea water of density \(\rho\). \(x\) is how far it sits below its equilibrium position. Ignoring damping, which equation governs it?`,
+  m(R`m\frac{d^{2}x}{dt^{2}}+\rho gAx=0`),[R`m\frac{d^{2}x}{dt^{2}}-\rho gAx=0`,R`m\frac{d^{2}x}{dt^{2}}+\rho gA=0`,R`m\frac{dx}{dt}+\rho gAx=0`].map(m),
+  R`Pushed down by \(x\), the buoy displaces an extra volume \(Ax\), so the extra upthrust \(\rho gAx\) acts upward: \(m\frac{d^{2}x}{dt^{2}}=-\rho gAx\).`)
+];
+
+/* ---------------- Unit 2 ---------------- */
+const METHODS=[['direct','Direct integration'],['sep','Separation of variables'],['if','Integrating factor'],['exact','Test of exactness'],['hom','Homogeneous, y = vx'],['bern','Bernoulli substitution'],['ricc','Riccati substitution']];
+const PICK={
+ direct:[
+  {tex:R`\frac{dy}{dx}=3x^{2}-4x+1`,why:R`The right side depends on \(x\) alone, so integrate both sides directly.`},
+  {tex:R`\frac{dy}{dx}=\cos 2x`,why:R`The right side depends on \(x\) alone, so integrate both sides directly.`},
+  {tex:R`x\frac{dy}{dx}=x^{3}+1`,why:R`Divide by \(x\) to get \(\frac{dy}{dx}=x^{2}+\frac{1}{x}\), a function of \(x\) alone, then integrate.`}],
+ sep:[
+  {tex:R`\frac{dy}{dx}=(1+y^{2})\cos x`,why:R`The right side is a product of a function of \(y\) and a function of \(x\): \(\frac{dy}{1+y^{2}}=\cos x\,dx\).`},
+  {tex:R`\frac{dy}{dx}=e^{x-y}`,why:R`\(e^{x-y}=e^{x}e^{-y}\), so the variables separate: \(e^{y}\,dy=e^{x}\,dx\).`},
+  {tex:R`\frac{dy}{dx}=\frac{x^{2}}{1+y^{2}}`,why:R`Cross-multiply to separate the variables: \((1+y^{2})\,dy=x^{2}\,dx\).`}],
+ if:[
+  {tex:R`\frac{dy}{dx}+2y=e^{-x}`,why:R`It has the linear form \(\frac{dy}{dx}+Py=Q\) with \(P=2\), and the variables do not separate. Multiply by \(e^{\int P\,dx}=e^{2x}\).`},
+  {tex:R`\frac{dy}{dx}+y\tan x=\sec x`,why:R`Linear in \(y\) with \(P=\tan x\). The integrating factor is \(e^{\int\tan x\,dx}=\sec x\).`},
+  {tex:R`x\frac{dy}{dx}+3y=x^{2}`,why:R`Divide by \(x\): \(\frac{dy}{dx}+\frac{3}{x}y=x\). This is linear, with integrating factor \(x^{3}\).`}],
+ exact:[
+  {tex:R`(2xy+3)\,dx+(x^{2}-4y)\,dy=0`,why:R`With \(M=2xy+3\) and \(N=x^{2}-4y\): \(\frac{\partial M}{\partial y}=2x=\frac{\partial N}{\partial x}\), so the equation is exact.`},
+  {tex:R`(y\cos x+2x)\,dx+(\sin x+3y^{2})\,dy=0`,why:R`\(\frac{\partial M}{\partial y}=\cos x=\frac{\partial N}{\partial x}\), so the equation is exact.`},
+  {tex:R`(e^{y}+2x)\,dx+(xe^{y}-1)\,dy=0`,why:R`\(\frac{\partial M}{\partial y}=e^{y}=\frac{\partial N}{\partial x}\), so the equation is exact.`}],
+ hom:[
+  {tex:R`\frac{dy}{dx}=\frac{x+y}{x-y}`,why:R`Every term has degree 1, so the right side is a function of \(\frac{y}{x}\) only. Put \(y=vx\).`},
+  {tex:R`\frac{dy}{dx}=\frac{y}{x}+\tan\frac{y}{x}`,why:R`The right side is a function of \(\frac{y}{x}\) only. Put \(y=vx\).`},
+  {tex:R`x\frac{dy}{dx}=y+\sqrt{x^{2}+y^{2}}`,why:R`Dividing by \(x\) gives a function of \(\frac{y}{x}\) only: every term has degree 1. Put \(y=vx\).`}],
+ bern:[
+  {tex:R`\frac{dy}{dx}+y=xy^{3}`,why:R`It has the form \(\frac{dy}{dx}+Py=Qy^{n}\) with \(n=3\). The substitution \(v=y^{-2}\) makes it linear.`},
+  {tex:R`\frac{dy}{dx}+\frac{y}{x}=x^{2}y^{3}`,why:R`It has the form \(\frac{dy}{dx}+Py=Qy^{n}\) with \(n=3\). The substitution \(v=y^{-2}\) makes it linear.`},
+  {tex:R`\frac{dy}{dx}+2y=e^{x}\sqrt{y}`,why:R`It has the form \(\frac{dy}{dx}+Py=Qy^{n}\) with \(n=\tfrac12\). The substitution \(v=y^{1/2}\) makes it linear.`}],
+ ricc:[
+  {tex:R`\frac{dy}{dx}=1+x^{2}-2xy+y^{2}`,note:R`You are told that \(y=x\) is one solution.`,why:R`The right side is quadratic in \(y\) with a term free of \(y\), and one solution \(y_{1}=x\) is known. Put \(y=x+\frac{1}{v}\).`},
+  {tex:R`\frac{dy}{dx}=e^{2x}+(1+2e^{x})y+y^{2}`,note:R`You are told that \(y=-e^{x}\) is one solution.`,why:R`Quadratic in \(y\) with one known solution \(y_{1}=-e^{x}\): a Riccati equation. Put \(y=-e^{x}+\frac{1}{v}\).`},
+  {tex:R`\frac{dy}{dx}=y^{2}-\frac{y}{x}-\frac{4}{x^{2}}`,note:R`You are told that \(y=\frac{2}{x}\) is one solution.`,why:R`Quadratic in \(y\) with one known solution \(y_{1}=\frac{2}{x}\): a Riccati equation. Put \(y=\frac{2}{x}+\frac{1}{v}\).`}]
+};
+function qMethod(key){
+  const it=pick(PICK[key]);
+  return {type:'mcq',prompt:'Which method fits this equation most directly?',tex:it.tex,note:it.note,
+    options:METHODS.map(x=>x[1]),accept:[METHODS.findIndex(x=>x[0]===key)],cols:2,explain:it.why};
+}
+
+const STEP={
+ ifac:()=>{ const a=pick([2,3,4,5]),n=pick([2,3,4]);
+  const pool=[
+   [R`\frac{dy}{dx}+${a}y=e^{x}`,R`e^{${a}x}`,[R`e^{-${a}x}`,R`${a}x`,R`x^{${a}}`],R`\int ${a}\,dx=${a}x`],
+   [R`\frac{dy}{dx}+\frac{${n}y}{x}=x^{2}`,R`x^{${n}}`,[R`e^{${n}x}`,R`${n}\ln x`,R`x^{-${n}}`],R`\int\frac{${n}}{x}\,dx=${n}\ln x=\ln x^{${n}}`],
+   [R`\frac{dy}{dx}+2xy=x`,R`e^{x^{2}}`,[R`e^{2x}`,R`x^{2}`,R`e^{-x^{2}}`],R`\int 2x\,dx=x^{2}`],
+   [R`\frac{dy}{dx}+y\tan x=\sec x`,R`\sec x`,[R`\cos x`,R`e^{\tan x}`,R`\ln\sec x`],R`\int\tan x\,dx=\ln\sec x`],
+   [R`\frac{dy}{dx}-\frac{y}{x}=x^{2}`,R`\frac{1}{x}`,[R`x`,R`e^{-x}`,R`-\ln x`],R`\int -\frac{1}{x}\,dx=-\ln x=\ln\frac{1}{x}`],
+   [R`\frac{dy}{dx}+y\cot x=\cos x`,R`\sin x`,[R`\operatorname{cosec}x`,R`e^{\cot x}`,R`\ln\sin x`],R`\int\cot x\,dx=\ln\sin x`]];
+  const [eq,ans,ds,why]=pick(pool);
+  return mcq('What is the integrating factor?',m(ans),ds.map(m),R`The integrating factor is \(e^{\int P\,dx}\). Here \(${why}\), so the factor is \(${ans}\).`,{tex:eq}); },
+ exactTest:()=>{ const c=pick([1,2,3]),isExact=Math.random()<0.5,b=rnd(1,5),d=pick([2,4,6]);
+  const a=isExact?2*c:pick([1,2,3,4,5,6].filter(v=>v!==2*c));
+  const t=k=>k===1?'x':k+'x';
+  const line=(my,nx,v)=>R`\(\frac{\partial M}{\partial y}=${my}\) and \(\frac{\partial N}{\partial x}=${nx}\), so it is ${v?'exact':'not exact'}`;
+  return mcq(R`Apply the test of exactness to \(M\,dx+N\,dy=0\) below.`,
+   line(t(a),t(2*c),isExact),[line(t(a),t(2*c),!isExact),line(t(a),t(c),a===c),line(a===1?'y':a+'y',String(d),false)],
+   R`\(M=${lin([[a,'xy'],[b,'']])}\) gives \(\frac{\partial M}{\partial y}=${t(a)}\). \(N=${lin([[c,'x^{2}'],[d,'y']])}\) gives \(\frac{\partial N}{\partial x}=${t(2*c)}\). The equation is exact only when the two are equal.`,
+   {tex:R`(${lin([[a,'xy'],[b,'']])})\,dx+(${lin([[c,'x^{2}'],[d,'y']])})\,dy=0`}); },
+ exactSolve:()=>{ const c=pick([1,2,3]),b=rnd(1,5),d=pick([2,4,6]),a=2*c;
+  const F=(p,q,r)=>m(lin([[p,'x^{2}y'],[q,'x'],[r,'y^{2}']])+'=C');
+  return mcq(R`This equation is exact. What is its general solution?`,
+   F(c,b,d/2),[F(2*c,b,d/2),m(lin([[c,'x^{2}y'],[b,'x'],[d,'y']])+'=C'),F(c,0,d/2)],
+   R`Integrate \(M\) with respect to \(x\): \(F=${lin([[c,'x^{2}y'],[b,'x']])}+g(y)\). Then \(\frac{\partial F}{\partial y}=${lin([[c,'x^{2}']])}+g'(y)\) must equal \(N\), so \(g'(y)=${d}y\) and \(g=${lin([[d/2,'y^{2}']])}\). Count the shared term \(${lin([[c,'x^{2}y']])}\) once only.`,
+   {tex:R`(${lin([[a,'xy'],[b,'']])})\,dx+(${lin([[c,'x^{2}'],[d,'y']])})\,dy=0`}); },
+ bernSub:()=>{ const a=pick([1,2,3]),e=pick([1,2]),n=pick([3,4]);
+  return mcq(R`Which substitution turns this Bernoulli equation into a linear one?`,
+   m(R`v=y^{${1-n}}`),[R`v=y^{${n}}`,R`v=y^{${n-1}}`,R`y=vx`].map(m),
+   R`For \(\frac{dy}{dx}+Py=Qy^{n}\) use \(v=y^{1-n}\). Here \(n=${n}\), so \(v=y^{${1-n}}\).`,
+   {tex:R`\frac{dy}{dx}+\frac{${a===1?'':a}y}{x}=${e===1?'x':'x^{2}'}y^{${n}}`}); },
+ bernLin:()=>{ const a=pick([1,2,3]),e=pick([1,2]),n=pick([3,4]),xe=e===1?'x':'x^{2}',k=n-1;
+  const f=(sgn,co,rhs)=>m(R`\frac{dv}{dx}${sgn}\frac{${co===1?'':co}v}{x}=${rhs}`);
+  return mcq(R`Substituting \(v=y^{${1-n}}\) into this Bernoulli equation gives which linear equation?`,
+   f('-',k*a,`-${k}${xe}`),[f('+',a,xe),f('-',k*a,xe),f('+',k*a,`${k}${xe}`)],
+   R`\(\frac{dv}{dx}=${1-n}y^{-${n}}\frac{dy}{dx}\). Divide the equation by \(y^{${n}}\), then multiply through by \(${1-n}\): both \(P\) and \(Q\) pick up the factor \(1-n=${1-n}\).`,
+   {tex:R`\frac{dy}{dx}+\frac{${a===1?'':a}y}{x}=${xe}y^{${n}}`}); },
+ homSub:()=>{ const pool=[
+   [R`\frac{dy}{dx}=\frac{x+y}{x}`,R`x\frac{dv}{dx}=1`,[R`x\frac{dv}{dx}=1+v`,R`\frac{dv}{dx}=1+v`,R`x\frac{dv}{dx}=v`],R`1+v`],
+   [R`\frac{dy}{dx}=\frac{x^{2}+y^{2}}{xy}`,R`x\frac{dv}{dx}=\frac{1}{v}`,[R`x\frac{dv}{dx}=\frac{1+v^{2}}{v}`,R`\frac{dv}{dx}=\frac{1}{v}`,R`x\frac{dv}{dx}=v`],R`\frac{1+v^{2}}{v}`],
+   [R`\frac{dy}{dx}=\frac{y}{x}+\tan\frac{y}{x}`,R`x\frac{dv}{dx}=\tan v`,[R`x\frac{dv}{dx}=v+\tan v`,R`\frac{dv}{dx}=\tan v`,R`x\frac{dv}{dx}=\cot v`],R`v+\tan v`],
+   [R`\frac{dy}{dx}=\frac{x+y}{x-y}`,R`x\frac{dv}{dx}=\frac{1+v^{2}}{1-v}`,[R`x\frac{dv}{dx}=\frac{1+v}{1-v}`,R`\frac{dv}{dx}=\frac{1+v}{1-v}`,R`x\frac{dv}{dx}=\frac{1-v^{2}}{1-v}`],R`\frac{1+v}{1-v}`]];
+  const [eq,ans,ds,rhs]=pick(pool);
+  return mcq(R`Put \(y=vx\). After simplifying, what does the equation become?`,m(ans),ds.map(m),
+   R`With \(y=vx\), \(\frac{dy}{dx}=v+x\frac{dv}{dx}\), and the right side becomes \(${rhs}\). Subtract \(v\) from both sides to get \(${ans}\), which is separable.`,{tex:eq}); },
+ riccSub:()=>{ const it=pick([
+   [R`\frac{dy}{dx}=1+x^{2}-2xy+y^{2}`,'x',R`y=x+\frac{1}{v}`],
+   [R`\frac{dy}{dx}=e^{2x}+(1+2e^{x})y+y^{2}`,R`-e^{x}`,R`y=-e^{x}+\frac{1}{v}`],
+   [R`\frac{dy}{dx}=y^{2}-\frac{y}{x}-\frac{4}{x^{2}}`,R`\frac{2}{x}`,R`y=\frac{2}{x}+\frac{1}{v}`]]);
+  return mcq(R`\(y=${it[1]}\) is one solution of this Riccati equation. Which substitution reduces it directly to a linear equation in \(v\)?`,
+   m(it[2]),[R`y=vx`,R`v=\frac{1}{y}`,R`v=\frac{dy}{dx}`].map(m),
+   R`For a Riccati equation with a known solution \(y_{1}\), put \(y=y_{1}+\frac{1}{v}\). The \(y^{2}\) term then cancels against \(y_{1}\)'s own equation and leaves a linear equation in \(v\).`,{tex:it[0]}); },
+ riccSolve:()=>mcq(R`This Riccati equation has the solution \(y=x\). Putting \(y=x+\frac{1}{v}\) gives \(\frac{dv}{dx}=-1\). What is the general solution?`,
+   m(R`y=x+\frac{1}{C-x}`),[R`y=x+\frac{1}{C+x}`,R`y=x+\tan(x+C)`,R`y=x+Ce^{x}`].map(m),
+   R`The right side is \(1+(y-x)^{2}\). With \(y=x+\frac{1}{v}\): \(1-\frac{1}{v^{2}}\frac{dv}{dx}=1+\frac{1}{v^{2}}\), so \(\frac{dv}{dx}=-1\) and \(v=C-x\).`,
+   {tex:R`\frac{dy}{dx}=1+x^{2}-2xy+y^{2}`}),
+ sepSolve:()=>pick([
+  ()=>{ const k=pick([2,4,6]),h=k/2,hs=h===1?'':h;
+   return mcq('Solve by separating the variables.',m(R`y=Ae^{${hs}x^{2}}`),[R`y=Ae^{${k}x^{2}}`,R`y=${hs}x^{2}+C`,R`y=Ae^{${k}x}`].map(m),
+    R`\(\int\frac{dy}{y}=\int ${k}x\,dx\) gives \(\ln y=${hs}x^{2}+c\), so \(y=Ae^{${hs}x^{2}}\).`,{tex:R`\frac{dy}{dx}=${k}xy`}); },
+  ()=>mcq(R`Solve, given that \(y=1\) when \(x=0\).`,m(R`y=\frac{1}{1+x^{2}}`),[R`y=1-x^{2}`,R`y=e^{-x^{2}}`,R`y=\frac{1}{1-x^{2}}`].map(m),
+    R`\(\int\frac{dy}{y^{2}}=\int -2x\,dx\) gives \(-\frac{1}{y}=-x^{2}+c\). With \(y(0)=1\), \(c=-1\), so \(\frac{1}{y}=1+x^{2}\).`,{tex:R`\frac{dy}{dx}=-2xy^{2}`}),
+  ()=>mcq(R`Solve, given that \(y=2\) when \(x=0\).`,m(R`y^{2}=x^{2}+4`),[R`y=x+2`,R`y^{2}=x^{2}+2`,R`y^{2}=2x^{2}+4`].map(m),
+    R`\(\int y\,dy=\int x\,dx\) gives \(\frac{y^{2}}{2}=\frac{x^{2}}{2}+c\). With \(y(0)=2\), \(c=2\), so \(y^{2}=x^{2}+4\).`,{tex:R`\frac{dy}{dx}=\frac{x}{y}`})
+ ])(),
+ direct:()=>{ const a=pick([1,2,3]),b=pick([4,5,6]),y0=pick([3,4,6]),C=y0-a+b;
+  const f=(...t)=>m('y='+lin(t));
+  return mcq(R`Solve by direct integration, given that \(y=${y0}\) when \(x=1\).`,
+   f([a,'x^{3}'],[-b,'x'],[C,'']),[f([a,'x^{3}'],[-b,'x'],[y0,'']),f([6*a,'x'],[y0,'']),f([a,'x^{3}'],[-b,'x'])],
+   R`Integrating gives \(y=${lin([[a,'x^{3}'],[-b,'x']])}+C\). At \(x=1\): \(${y0}=${a}-${b}+C\), so \(C=${C}\).`,
+   {tex:R`\frac{dy}{dx}=${lin([[3*a,'x^{2}'],[-b,'']])}`}); }
+};
+
+const APP_DECAY=[
+()=>{ const H=pick([5,8,12,30]),M=pick([80,120,200,500]),t=pick([10,20,25,40]),ans=M*Math.pow(2,-t/H);
+  return {type:'num',prompt:R`A radioactive tracer used to inspect a pipeline weld has a half-life of ${H} days. A sample starts at ${M} mg. How much is left after ${t} days?`,answer:ans,unit:'mg',
+   explain:R`\(m=m_{0}e^{-kt}\) with \(k=\frac{\ln 2}{${H}}\), which is the same as \(m=${M}\times 2^{-${t}/${H}}\approx ${sig(ans)}\) mg.`}; },
+()=>{ const Dd=pick([3,4,6]),N=pick([200,500,1000]),t=pick([10,15,20]),ans=N*Math.pow(2,t/Dd);
+  return {type:'num',prompt:R`Bacteria in a ballast-water sample double every ${Dd} hours. Starting from ${N}, how many are there after ${t} hours?`,answer:ans,unit:'bacteria',
+   explain:R`\(N=N_{0}e^{kt}\) with \(k=\frac{\ln 2}{${Dd}}\), which is the same as \(N=${N}\times 2^{${t}/${Dd}}\approx ${sig(ans)}\).`}; },
+()=>{ const p=pick([60,75,80,90]),T=pick([5,10,20]),ans=T*Math.LN2/Math.log(100/p);
+  return {type:'num',prompt:R`A substance decays exponentially to ${p}% of its original mass in ${T} days. What is its half-life?`,answer:ans,unit:'days',
+   explain:R`\(e^{-${T}k}=${p/100}\) gives \(k=\frac{\ln(1/${p/100})}{${T}}\approx ${sig(Math.log(100/p)/T,4)}\). The half-life is \(\frac{\ln 2}{k}\approx ${sig(ans)}\) days.`}; },
+()=>{ const Ts=pick([25,30]),T0=pick([85,90,95]),drop=pick([15,20]),n=pick([2,3]),T1=T0-drop,r=(T1-Ts)/(T0-Ts),ans=Ts+(T0-Ts)*Math.pow(r,n);
+  return {type:'num',prompt:R`A cup of Blue Mountain coffee at ${T0} °C is left in a room at ${Ts} °C. Five minutes later it is at ${T1} °C. By Newton's law of cooling, what is its temperature ${5*n} minutes after it was poured?`,answer:ans,unit:'°C',
+   explain:R`The excess over room temperature decays exponentially. It falls from ${T0-Ts} to ${T1-Ts} in 5 minutes, a factor of \(\frac{${T1-Ts}}{${T0-Ts}}\). After ${5*n} minutes the excess is \(${T0-Ts}\times\left(\frac{${T1-Ts}}{${T0-Ts}}\right)^{${n}}\approx ${sig((T0-Ts)*Math.pow(r,n))}\), so the temperature is about ${sig(ans)} °C.`}; }
+];
+const APP_CIRCUIT=[
+()=>{ const E=pick([12,24,48]),Rr=pick([4,6,8]),L=pick([2,3,4]),t=pick([0.5,1,2]),ans=E/Rr*(1-Math.exp(-Rr*t/L));
+  return {type:'num',prompt:R`A coil of inductance ${L} H and resistance ${Rr} Ω is switched onto a ${E} V supply at \(t=0\). What is the current after ${t} s?`,answer:ans,unit:'A',
+   explain:R`\(L\frac{di}{dt}+Ri=E\) with \(i(0)=0\) gives \(i=\frac{E}{R}\left(1-e^{-Rt/L}\right)=${sig(E/Rr)}\left(1-e^{-${sig(Rr*t/L)}}\right)\approx ${sig(ans)}\) A.`}; },
+()=>{ const Rr=pick([4,6,8]),L=pick([2,3,4]),pct=pick([50,90,95]),ans=L/Rr*Math.log(100/(100-pct));
+  return {type:'num',prompt:R`A coil of inductance ${L} H and resistance ${Rr} Ω is switched onto a steady supply. How long does the current take to reach ${pct}% of its final value?`,answer:ans,unit:'s',
+   explain:R`\(i=\frac{E}{R}\left(1-e^{-Rt/L}\right)\), so we need \(e^{-Rt/L}=${sig(1-pct/100)}\). Then \(t=\frac{L}{R}\ln\frac{1}{${sig(1-pct/100)}}=${sig(L/Rr)}\times${sig(Math.log(100/(100-pct)),4)}\approx ${sig(ans)}\) s.`}; },
+()=>{ const Rk=pick([10,20,50]),Cu=pick([100,200,470]),V0=pick([9,12,24]),t=pick([1,2]),tau=Rk*Cu/1000,ans=V0*Math.exp(-t/tau);
+  return {type:'num',prompt:R`A ${Cu} μF capacitor charged to ${V0} V discharges through a ${Rk} kΩ resistor. What is the voltage across it after ${t} s?`,answer:ans,unit:'V',
+   explain:R`\(RC\frac{dv}{dt}+v=0\) gives \(v=V_{0}e^{-t/RC}\). The time constant is \(RC=${Rk}\times10^{3}\times${Cu}\times10^{-6}=${sig(tau)}\) s, so \(v=${V0}e^{-${t}/${sig(tau)}}\approx ${sig(ans)}\) V.`}; }
+];
+
+/* ---------------- Unit 3 ---------------- */
+const cfD=(r1,r2)=>`A${ex(r1)}+B${ex(r2)}`;
+const cfR=r=>`(A+Bx)${ex(r)}`;
+const cfC=(al,be)=>al===0?R`A\cos ${kx(be)}+B\sin ${kx(be)}`:R`${ex(al)}(A\cos ${kx(be)}+B\sin ${kx(be)})`;
+const odeL=(a,b,c)=>lin([[a,Y2],[b,Y1],[c,'y']]);
+function genCase(kind){
+  const a=pick([1,1,1,2]);
+  if(kind==='distinct'){ let r1,r2; do{ r1=rnd(-5,5); r2=rnd(-5,5);}while(!r1||!r2||r1>=r2||r1===-r2);
+    return {kind,a,b:-a*(r1+r2),c:a*r1*r2,r1,r2}; }
+  if(kind==='repeated'){ const r=pick([-4,-3,-2,-1,1,2,3,4]); return {kind,a,b:-2*a*r,c:a*r*r,r}; }
+  const al=rnd(-3,3),be=rnd(1,4); return {kind,a,b:-2*a*al,c:a*(al*al+be*be),al,be};
+}
+const cplx=(al,be)=>(al===0?'':al)+R`\pm ${be===1?'':be}i`;
+function caseWhy(k){
+  const disc=k.b*k.b-4*k.a*k.c,aux=lin([[k.a,'m^{2}'],[k.b,'m'],[k.c,'']])+'=0';
+  const head=R`The auxiliary equation is \(${aux}\), with \(b^{2}-4ac=${disc}\). `;
+  if(k.kind==='distinct') return head+R`That is positive, so there are two distinct real roots, \(m=${k.r1}\) and \(m=${k.r2}\), and the complementary function is \(y=${cfD(k.r1,k.r2)}\).`;
+  if(k.kind==='repeated') return head+R`That is zero, so the root \(m=${k.r}\) is repeated, and the complementary function is \(y=${cfR(k.r)}\).`;
+  return head+R`That is negative, so the roots are complex, \(m=${cplx(k.al,k.be)}\), and the complementary function is \(y=${cfC(k.al,k.be)}\).`;
+}
+function qCF(kind){
+  const k=genCase(kind); let ans,ds;
+  if(kind==='distinct'){ ans=cfD(k.r1,k.r2); ds=[cfD(-k.r2,-k.r1),cfR(k.r1),cfC(k.r1,Math.abs(k.r2)),cfR(k.r2)]; }
+  else if(kind==='repeated'){ ans=cfR(k.r); ds=[cfR(-k.r),cfD(k.r,-k.r),cfC(0,Math.abs(k.r)),`A${ex(k.r)}`]; }
+  else { ans=cfC(k.al,k.be); ds=k.al===0?[cfD(k.be,-k.be),cfR(k.be),cfC(k.be,k.be)]
+        :[cfC(-k.al,k.be),k.al!==k.be?cfD(k.al,k.be):null,cfR(k.al),cfC(0,k.be)]; }
+  return mcq('What is the complementary function?',m('y='+ans),ds.filter(Boolean).map(d=>m('y='+d)),caseWhy(k),{tex:odeL(k.a,k.b,k.c)+'=0'});
+}
+function qRoots(kind){
+  const k=genCase(kind); let ans,ds; const T=R`\text{ or }`;
+  if(kind==='distinct'){ ans=`m=${k.r1}${T}${k.r2}`; ds=[`m=${-k.r2}${T}${-k.r1}`,R`m=${k.r1}\text{ twice}`,R`m=${k.r2}\text{ twice}`,`m=${cplx(k.r1,Math.abs(k.r2))}`]; }
+  else if(kind==='repeated'){ ans=R`m=${k.r}\text{ twice}`; ds=[R`m=${-k.r}\text{ twice}`,`m=${Math.min(k.r,-k.r)}${T}${Math.max(k.r,-k.r)}`,`m=${cplx(0,Math.abs(k.r))}`]; }
+  else { ans=`m=${cplx(k.al,k.be)}`; ds=k.al===0?[`m=${-k.be}${T}${k.be}`,R`m=${k.be}\text{ twice}`,`m=${cplx(k.be,k.be)}`]
+        :[`m=${cplx(-k.al,k.be)}`,`m=${cplx(0,k.be)}`,R`m=${k.al}\text{ twice}`,`m=${cplx(k.al,2*k.be)}`]; }
+  return mcq('What are the roots of the auxiliary equation?',m(ans),ds.map(m),caseWhy(k),{tex:odeL(k.a,k.b,k.c)+'=0'});
+}
+
+const L1=odeL(1,-3,2),L2=odeL(1,0,4),L3=odeL(1,-4,4);
+const TRIAL=[
+ {res:false,tex:L1+'=4x+1',ans:'Cx+D',ds:['Cx',R`Cx^{2}+Dx`,R`Ce^{x}`],why:R`For a polynomial of degree 1, try the general polynomial of degree 1, \(Cx+D\). Keep both terms even if one is missing on the right.`},
+ {res:false,tex:L1+R`=6e^{3x}`,ans:R`Ce^{3x}`,ds:[R`Cxe^{3x}`,R`Ce^{x}+De^{2x}`,R`C\cos 3x+D\sin 3x`],why:R`The complementary function is \(Ae^{x}+Be^{2x}\). \(e^{3x}\) is not part of it, so \(Ce^{3x}\) works.`},
+ {res:true,tex:L1+R`=5e^{2x}`,ans:R`Cxe^{2x}`,ds:[R`Ce^{2x}`,R`Cx^{2}e^{2x}`,R`Ce^{x}`],why:R`The complementary function \(Ae^{x}+Be^{2x}\) already contains \(e^{2x}\), so \(Ce^{2x}\) would give zero on the left. Multiply by \(x\).`},
+ {res:false,tex:L1+R`=10\sin 2x`,ans:R`C\cos 2x+D\sin 2x`,ds:[R`C\sin 2x`,R`x(C\cos 2x+D\sin 2x)`,R`Ce^{2x}`],why:R`Differentiating \(\sin 2x\) produces \(\cos 2x\), so the trial needs both. No extra \(x\) is needed because the complementary function is \(Ae^{x}+Be^{2x}\).`},
+ {res:true,tex:L2+R`=3\cos 2x`,ans:R`x(C\cos 2x+D\sin 2x)`,ds:[R`C\cos 2x+D\sin 2x`,R`C\cos 2x`,R`Cx^{2}\cos 2x`],why:R`The complementary function is \(A\cos 2x+B\sin 2x\), the same form as the right side. Multiply the usual trial by \(x\). This is resonance.`},
+ {res:true,tex:L3+R`=e^{2x}`,ans:R`Cx^{2}e^{2x}`,ds:[R`Ce^{2x}`,R`Cxe^{2x}`,R`(C+Dx)e^{2x}`],why:R`The complementary function is \((A+Bx)e^{2x}\), which already contains both \(e^{2x}\) and \(xe^{2x}\). Multiply by \(x^{2}\).`},
+ {res:false,tex:L1+R`=x^{2}`,ans:R`Cx^{2}+Dx+E`,ds:[R`Cx^{2}`,R`Cx^{2}+D`,R`Cx^{3}`],why:R`For a polynomial of degree 2, try the general quadratic. The lower powers appear when you differentiate.`},
+ {res:false,tex:L2+'=8',ans:'C',ds:['Cx',R`C\cos 2x`,R`Cx^{2}`],why:R`For a constant right side, try a constant. Here \(4C=8\), so the particular integral is \(y=2\).`}
+];
+const qTrial=it=>mcq('Which trial form should you use for the particular integral?',m('y='+it.ans),it.ds.map(d=>m('y='+d)),it.why,{tex:it.tex});
+function piParams(){ let r1,r2,s; do{ r1=rnd(-3,3); r2=rnd(-3,3); s=rnd(-3,4);}while(!r1||!r2||r1>=r2||r1===-r2||!s||s===r1||s===r2);
+  const den=(s-r1)*(s-r2),K=pick([1,2,3]); return {r1,r2,s,den,K,k:K*den,S:r1+r2,P:r1*r2}; }
+function qPIexp(){ const p=piParams();
+  return mcq('Find the particular integral.',m('y='+ce(p.K,p.s)),[m('y='+ce(p.k,p.s)),m(`y=${p.K===1?'':p.K}x${ex(p.s)}`),m('y='+ce(-p.K,p.s)),m('y='+ce(2*p.K,p.s))],
+   R`Try \(y=C${ex(p.s)}\). Substituting gives \(C\left(${p.s*p.s}${p.S*p.s>0?'-':'+'}${Math.abs(p.S*p.s)}${p.P<0?'-':'+'}${Math.abs(p.P)}\right)${ex(p.s)}=${ce(p.k,p.s)}\), so \(${p.den}C=${p.k}\) and \(C=${p.K}\).`,
+   {tex:odeL(1,-p.S,p.P)+'='+ce(p.k,p.s)}); }
+function qGeneral(){ const p=piParams(),cf=cfD(p.r1,p.r2),pi=ce(p.K,p.s),join=(a,b)=>a+(b[0]==='-'?'':'+')+b;
+  return mcq('What is the general solution?',m('y='+join(cf,pi)),[m('y='+cf),m('y='+pi),m('y='+join(cfD(-p.r2,-p.r1),pi)),m('y='+join(cf,ce(p.k,p.s)))],
+   R`General solution = complementary function + particular integral. The auxiliary roots are \(${p.r1}\) and \(${p.r2}\), giving \(${cf}\). Trying \(y=C${ex(p.s)}\) gives \(${p.den}C=${p.k}\), so the particular integral is \(${pi}\).`,
+   {tex:odeL(1,-p.S,p.P)+'='+ce(p.k,p.s)}); }
+function qPIconst(){ const p=pick([2,3,5]),q=pick([2,4,5]),K=pick([2,3,4,6]),k=K*q;
+  return mcq('Find the particular integral.',m('y='+K),[m('y='+k),m(`y=${K}x`),m('y='+k*q)],
+   R`Try a constant, \(y=C\). Its derivatives vanish, leaving \(${q}C=${k}\), so \(C=${K}\).`,{tex:odeL(1,p,q)+'='+k}); }
+
+// response of x'' + b x' + c x = 0 with x(0)=1, x'(0)=0
+function resp(b,c,t){
+  const d=b*b-4*c;
+  if(Math.abs(d)<1e-9){ const r=-b/2; return (1-r*t)*Math.exp(r*t); }
+  if(d>0){ const s=Math.sqrt(d),r1=(-b+s)/2,r2=(-b-s)/2; return (r2*Math.exp(r1*t)-r1*Math.exp(r2*t))/(r2-r1); }
+  const al=-b/2,be=Math.sqrt(-d)/2; return Math.exp(al*t)*(Math.cos(be*t)-(al/be)*Math.sin(be*t));
+}
+function gap(b,c,tb,tc){ let s=0; const n=120,T=6; for(let i=0;i<=n;i++){ const t=T*i/n,e=resp(b,c,t)-resp(tb,tc,t); s+=e*e; } return Math.sqrt(s/(n+1)); }
+function rootInfo(b,c){
+  const d=b*b-4*c,f=v=>String(Math.round(v*100)/100).replace('-','−');
+  if(Math.abs(d)<1e-9) return {d:0,roots:`m = ${f(-b/2)} twice`,kind:'repeated real roots',damp:'critically damped'};
+  if(d>0){ const s=Math.sqrt(d); return {d,roots:`m = ${f((-b+s)/2)} or ${f((-b-s)/2)}`,kind:'distinct real roots',damp:'overdamped'}; }
+  return {d,roots:`m = ${f(-b/2)} ± ${f(Math.sqrt(-d)/2)}i`,kind:'complex roots',damp:b===0?'undamped':'underdamped'};
+}
+const eqText=(b,c)=>'x″'+(b?' + '+(b===1?'':b)+'x′':'')+' + '+(c===1?'':c)+'x = 0';
+const TUNE={
+ under:()=>({b:pick([1,1.5,2,2.5,3]),c:rnd(8,28),prompt:pick([
+   R`Roll-decay test. A model hull is heeled over and let go. The dots are its logged roll angle \(x(t)\), which follows \(\frac{d^{2}x}{dt^{2}}+b\frac{dx}{dt}+cx=0\). Move \(b\) and \(c\) until your curve runs through the data.`,
+   R`A capacitor discharges through a coil and a resistor. The dots are the logged charge \(x(t)\), which follows \(\frac{d^{2}x}{dt^{2}}+b\frac{dx}{dt}+cx=0\). Move \(b\) and \(c\) until your curve runs through the data.`])}),
+ critical:()=>{ const [b,c]=pick([[2,1],[4,4],[6,9]]);
+   return {b,c,prompt:R`A gauge needle is built to settle as fast as it can without overshooting. The dots are its logged deflection \(x(t)\), which follows \(\frac{d^{2}x}{dt^{2}}+b\frac{dx}{dt}+cx=0\). Move \(b\) and \(c\) until your curve runs through the data.`}; },
+ over:()=>({b:pick([6,7,8]),c:rnd(2,6),prompt:R`A heavy watertight door on a hydraulic closer is pulled open and let go. The dots are its logged angle \(x(t)\), which follows \(\frac{d^{2}x}{dt^{2}}+b\frac{dx}{dt}+cx=0\). Move \(b\) and \(c\) until your curve runs through the data.`})
+};
+function qTune(kind){ const t=TUNE[kind]();
+  const info=rootInfo(t.b,t.c);
+  return {type:'tune',prompt:t.prompt,b:t.b,c:t.c,
+    explain:R`The data came from ${eqText(t.b,t.c)}. With \(a=1\), \(b^{2}-4ac=${num(info.d)}\), so the auxiliary equation has ${info.kind} (${info.roots}) and the system is ${info.damp}.`};
+}
+const TRACE_OPTS=['Real and negative','Real, at least one positive','Complex with negative real part','Complex with positive real part','Purely imaginary'];
+const TRACES=[
+ ()=>({k:0,b:pick([5,6,7]),c:pick([4,5,6]),T:6,why:R`No oscillation, and the trace dies away. That needs \(x=Ae^{m_{1}t}+Be^{m_{2}t}\) with both exponents negative: real negative roots, an overdamped system.`}),
+ ()=>({k:1,...pick([{b:1,c:-2},{b:0,c:-1}]),T:3,why:R`The trace runs away without oscillating, so the solution contains \(e^{mt}\) with a positive real \(m\).`}),
+ ()=>({k:2,b:pick([1,2]),c:pick([10,17,26]),T:6,why:R`Oscillation inside a decaying envelope: \(x=e^{\alpha t}(A\cos\beta t+B\sin\beta t)\) with \(\alpha<0\). The system is underdamped.`}),
+ ()=>({k:3,b:-1,c:pick([10,17]),T:5,why:R`Oscillation inside a growing envelope: \(x=e^{\alpha t}(A\cos\beta t+B\sin\beta t)\) with \(\alpha>0\). The system is unstable.`}),
+ ()=>({k:4,b:0,c:pick([4,9,16]),T:6,why:R`Oscillation at constant amplitude means no damping term, so the roots are \(\pm\beta i\): simple harmonic motion.`})
+];
+function qTrace(gen){ const t=gen();
+  return {type:'mcq',prompt:R`A system obeys \(\frac{d^{2}x}{dt^{2}}+b\frac{dx}{dt}+cx=0\). This trace was logged after it was released from rest at \(x=1\). What kind of roots does the auxiliary equation have?`,
+    plot:{b:t.b,c:t.c,T:t.T},options:TRACE_OPTS,accept:[t.k],explain:t.why}; }
+
+const NONLIN=[
+()=>mcq(R`In \(\frac{d^{2}y}{dx^{2}}=f\!\left(y,\frac{dy}{dx}\right)\) the variable \(x\) does not appear. Put \(p=\frac{dy}{dx}\). What replaces \(\frac{d^{2}y}{dx^{2}}\) so that only \(p\) and \(y\) remain?`,
+  m(R`p\frac{dp}{dy}`),[R`\frac{dp}{dx}`,R`\frac{dp}{dy}`,R`p^{2}`].map(m),
+  R`By the chain rule, \(\frac{d^{2}y}{dx^{2}}=\frac{dp}{dx}=\frac{dp}{dy}\cdot\frac{dy}{dx}=p\frac{dp}{dy}\). This leaves a first-order equation in \(p\) and \(y\).`),
+()=>mcq(R`\(y\) itself does not appear in this equation. Put \(p=\frac{dy}{dx}\). What does the equation become?`,
+  m(R`x\frac{dp}{dx}=p+p^{3}`),[R`xp\frac{dp}{dy}=p+p^{3}`,R`x\frac{dp}{dx}=y+y^{3}`,R`\frac{dp}{dx}=p+p^{3}`].map(m),
+  R`When \(y\) is missing, use \(\frac{d^{2}y}{dx^{2}}=\frac{dp}{dx}\). The result is a first-order equation in \(p\) and \(x\), here a separable one.`,
+  {tex:R`x\frac{d^{2}y}{dx^{2}}=\frac{dy}{dx}+\left(\frac{dy}{dx}\right)^{3}`}),
+()=>mcq('What is the general solution of this non-linear equation?',
+  m(R`y=Ae^{Bx}`),[R`y^{2}=Ax+B`,R`y=Ax+B`,R`y=A\cos Bx`].map(m),
+  R`\(x\) is missing, so put \(p=\frac{dy}{dx}\) and \(\frac{d^{2}y}{dx^{2}}=p\frac{dp}{dy}\): \(yp\frac{dp}{dy}=p^{2}\), so \(\frac{dp}{p}=\frac{dy}{y}\) and \(p=By\). Then \(\frac{dy}{dx}=By\) gives \(y=Ae^{Bx}\).`,
+  {tex:R`y\frac{d^{2}y}{dx^{2}}=\left(\frac{dy}{dx}\right)^{2}`}),
+()=>mcq('What is the general solution of this non-linear equation?',
+  m(R`y^{2}=Ax+B`),[R`y=Ax+B`,R`y=Ae^{Bx}`,R`y=A\ln x+B`].map(m),
+  R`The left side is exactly \(\frac{d}{dx}\!\left(y\frac{dy}{dx}\right)\), so \(y\frac{dy}{dx}=c\). Integrating again gives \(\frac{y^{2}}{2}=cx+d\), which is \(y^{2}=Ax+B\).`,
+  {tex:R`y\frac{d^{2}y}{dx^{2}}+\left(\frac{dy}{dx}\right)^{2}=0`}),
+()=>mcq('What is the general solution of this non-linear equation?',
+  m(R`y=B-\ln|A-x|`),[R`y=B+\ln|x+A|`,R`y=Ae^{x}+B`,R`y=Ax+B`].map(m),
+  R`Put \(p=\frac{dy}{dx}\): \(\frac{dp}{dx}=p^{2}\), so \(-\frac{1}{p}=x-A\) and \(p=\frac{1}{A-x}\). Integrating gives \(y=B-\ln|A-x|\).`,
+  {tex:R`\frac{d^{2}y}{dx^{2}}=\left(\frac{dy}{dx}\right)^{2}`}),
+()=>mcq(R`The pendulum equation without the small-angle approximation is non-linear. Put \(p=\frac{d\theta}{dt}\) and \(\frac{d^{2}\theta}{dt^{2}}=p\frac{dp}{d\theta}\), then integrate once. What do you get?`,
+  m(R`\tfrac12 p^{2}=\frac{g}{l}\cos\theta+C`),[R`\tfrac12 p^{2}=-\frac{g}{l}\cos\theta+C`,R`p=\frac{g}{l}\cos\theta+C`,R`\tfrac12 p^{2}=\frac{g}{l}\sin\theta+C`].map(m),
+  R`\(p\frac{dp}{d\theta}=-\frac{g}{l}\sin\theta\). Integrating with respect to \(\theta\): \(\tfrac12p^{2}=\frac{g}{l}\cos\theta+C\). This is the energy equation of the pendulum.`,
+  {tex:R`\frac{d^{2}\theta}{dt^{2}}+\frac{g}{l}\sin\theta=0`}),
+()=>mcq(R`A mooring chain hangs in a curve that satisfies this equation. Put \(p=\frac{dy}{dx}\) and separate the variables. What is \(p\)?`,
+  m(R`p=\sinh(kx+A)`),[R`p=\tan(kx+A)`,R`p=kx+A`,R`p=Ae^{kx}`].map(m),
+  R`\(\frac{dp}{\sqrt{1+p^{2}}}=k\,dx\) integrates to \(\sinh^{-1}p=kx+A\). Integrating \(p\) once more gives the catenary \(y=\frac{1}{k}\cosh(kx+A)+B\).`,
+  {tex:R`\frac{d^{2}y}{dx^{2}}=k\sqrt{1+\left(\frac{dy}{dx}\right)^{2}}`}),
+()=>mcq('Which of these second-order equations is non-linear?',
+  m(R`\frac{d^{2}y}{dx^{2}}+y\frac{dy}{dx}=0`),[R`\frac{d^{2}y}{dx^{2}}+x\frac{dy}{dx}=0`,R`x^{2}\frac{d^{2}y}{dx^{2}}+y=\sin x`,R`\frac{d^{2}y}{dx^{2}}+e^{x}y=0`].map(m),
+  R`\(y\frac{dy}{dx}\) is a product of the dependent variable with its own derivative. Coefficients and forcing terms that depend only on \(x\) leave an equation linear.`),
+()=>mcq(R`Put \(p=\frac{dy}{dx}\), which gives \(\frac{dp}{dx}=1+p^{2}\). What is \(p\)?`,
+  m(R`p=\tan(x+A)`),[R`p=\tanh(x+A)`,R`p=Ae^{x}`,R`p=x+A`].map(m),
+  R`\(\int\frac{dp}{1+p^{2}}=\int dx\) gives \(\tan^{-1}p=x+A\). Integrating once more, \(y=B-\ln|\cos(x+A)|\).`,
+  {tex:R`\frac{d^{2}y}{dx^{2}}=1+\left(\frac{dy}{dx}\right)^{2}`})
+];
+
+/* ---------------- stations ---------------- */
+const LEGS={
+ 1:{title:'Introduction to differential equations',route:'Kingston to Morant Point'},
+ 2:{title:'First-order differential equations',route:'Morant Point to Annotto Bay'},
+ 3:{title:'Second-order differential equations',route:'Annotto Bay to Montego Bay'}
+};
+const STATIONS=[
+ {id:'1.1',leg:1,place:'Yallahs',name:'Name the equation',topic:'Order, linearity, dependent variable, ODE or PDE',
+  round:()=>sample(CLASSIFY,5).map(qClassify)},
+ {id:'1.2',leg:1,place:'Morant Bay',name:'Words into rates',topic:'Formulating first-order equations',
+  round:()=>sample(F1,5).map(f=>f())},
+ {id:'1.3',leg:1,place:'Morant Point',name:'Springs, circuits and constants',topic:'Formulating second-order linear equations',
+  round:()=>sample(F2,5).map(f=>f())},
+ {id:'2.1',leg:2,place:'Manchioneal',name:'Choose the method',topic:'Seven ways to solve a first-order equation',
+  round:()=>sample(METHODS.map(x=>x[0]),5).map(qMethod)},
+ {id:'2.2',leg:2,place:'Port Antonio',name:'The key step',topic:'Integrating factors, exactness and substitutions',
+  round:()=>sample([STEP.ifac,pick([STEP.exactTest,STEP.exactSolve]),pick([STEP.bernSub,STEP.bernLin]),STEP.homSub,pick([STEP.riccSub,STEP.riccSolve]),STEP.sepSolve,STEP.direct],5).map(f=>f())},
+ {id:'2.3',leg:2,place:'Annotto Bay',name:'Growth, decay and circuits',topic:'Applications of first-order equations',
+  round:()=>shuffle([...sample(APP_DECAY,3),...sample(APP_CIRCUIT,2)]).map(f=>f())},
+ {id:'3.1',leg:3,place:'Port Maria',name:'The auxiliary equation',topic:'Distinct, repeated and complex roots',
+  round:()=>{ const ks=shuffle(['distinct','repeated','complex']); return [qCF(ks[0]),qRoots(ks[1]),qCF(ks[2]),qRoots(ks[0]),qCF(ks[1])]; }},
+ {id:'3.2',leg:3,place:'Ocho Rios',name:'The particular integral',topic:'Trial forms and the general solution',
+  round:()=>{ const res=pick(TRIAL.filter(t=>t.res)),rest=sample(TRIAL.filter(t=>t!==res),2);
+    const tr=shuffle([res,...rest]).map(qTrial); return [tr[0],tr[1],qPIexp(),tr[2],pick([qGeneral,qPIconst])()]; }},
+ {id:'3.3',leg:3,place:'Discovery Bay',name:'Fit the trace',topic:'Finding the constants a, b, c from logged data',
+  round:()=>{ const tr=sample(TRACES,2).map(qTrace),tu=shuffle(['under','critical','over']).map(qTune); return [tr[0],tu[0],tr[1],tu[1],tu[2]]; }},
+  {id:'3.4',leg:3,place:'Montego Bay',name:'Non-linear waters',topic:'Reducing the order of non-linear second-order equations',
+   round:()=>sample(NONLIN,5).map(f=>f())}
+];
+/* Worked-example lesson videos, one set per waypoint (files live in /games/de/) */
+const VIDEOS={
+ '1.1':[['01-classifying-equations.mp4','Name the equation']],
+ '1.2':[['02-words-into-rates.mp4','Words into rates']],
+ '1.3':[['03-springs-circuits.mp4','Springs, circuits and constants']],
+ '2.1':[['04-choose-the-method.mp4','Choose the method']],
+ '2.2':[['05-integrating-factors.mp4','The key step']],
+ '2.3':[['06-growth-decay-circuits.mp4','Growth, decay and circuits']],
+ '3.1':[['07-auxiliary-equation.mp4','The auxiliary equation']],
+ '3.2':[['08-particular-integral.mp4','The particular integral']],
+ '3.3':[['09-fit-the-trace.mp4','Fit the trace']],
+ '3.4':[['10-nonlinear-reduction.mp4','Non-linear waters']]
+};
+/* Curated YouTube deeper dives, one set per waypoint (real, verified videos) */
+const YT={
+ '1.1':[['6o7b9yyhH7k','Khan Academy \u2014 Differential equation introduction'],['p_di4Zn4wz4','3Blue1Brown \u2014 Differential equations, a tourist\u2019s guide']],
+ '1.2':[['DL-ozRGDlkY','Khan Academy \u2014 Separable differential equations introduction'],['C5-lz0hcqsE','Khan Academy \u2014 Separable equations (growth & decay)']],
+ '1.3':[['UyCwAFQt4v0','Khan Academy \u2014 2nd-order linear homogeneous equations'],['LVhSQ_PNtwU','The damped harmonic oscillator (derivation)']],
+ '2.1':[['p_di4Zn4wz4','3Blue1Brown \u2014 a tourist\u2019s guide'],['6o7b9yyhH7k','Khan Academy \u2014 Differential equation introduction'],['j511hg7Hlbg','Khan Academy \u2014 Integrating factors 1']],
+ '2.2':[['j511hg7Hlbg','Khan Academy \u2014 Integrating factors 1'],['eu_GFuU7tLI','Khan Academy \u2014 Exact equations example'],['BoI_ej-T0V4','Bernoulli\u2019s equation (Organic Chemistry Tutor)'],['TI1yYO_8LoI','Khan Academy \u2014 First-order homogeneous equations']],
+ '2.3':[['C5-lz0hcqsE','Khan Academy \u2014 Separable equations (growth & decay)']],
+ '3.1':[['UyCwAFQt4v0','Khan Academy \u2014 2nd-order linear homogeneous equations'],['LVhSQ_PNtwU','The damped harmonic oscillator (derivation)']],
+ '3.2':[['znE4Nq9NJCQ','Khan Academy \u2014 Undetermined coefficients 1']],
+ '3.3':[['LVhSQ_PNtwU','The damped harmonic oscillator (derivation)']],
+ '3.4':[['p_di4Zn4wz4','3Blue1Brown \u2014 the nonlinear pendulum']]
+};
+if(typeof module!=='undefined'&&module.exports){ module.exports={STATIONS,LEGS,VIDEOS,YT,resp,gap,rootInfo,eqText,CLASSIFY,F1,F2,PICK,STEP,TRIAL,NONLIN}; }
+</script>
+
+<script>
+/* =====================================================================
+   Interface
+   ===================================================================== */
+const app=document.getElementById('app');
+const KEY='dead-reckoning-v1';
+let progress={stars:{},best:{}};
+try{ const s=localStorage.getItem(KEY); if(s){ const p=JSON.parse(s); if(p&&p.stars) progress={stars:p.stars||{},best:p.best||{}}; } }catch(e){}
+const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(progress)); }catch(e){} };
+let S=null, mathReady=false;
+
+/* ===== enhancements: audio, praise, celebration ===== */
+let AC=null, MUTED=false; try{ MUTED=localStorage.getItem('dr-mute')==='1'; }catch(e){}
+function actx(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); }catch(e){ AC=null; } return AC; }
+function tone(f,d,type,w,v){ const c=actx(); if(!c||MUTED) return; const t=c.currentTime+(w||0), o=c.createOscillator(), g=c.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(v||.16,t+.012); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+d+.03); }
+const SFX={
+  correct(){ tone(660,.12,'sine',0,.16); tone(990,.2,'sine',.1,.16); },
+  wrong(){ tone(150,.26,'sine',0,.12); tone(120,.34,'sine',.1,.10); },
+  tick(){ tone(1040,.04,'square',0,.05); },
+  win(){ [523,659,784,1047,1319].forEach((f,i)=>tone(f,.28,'sine',i*.11,.18)); tone(1568,.6,'sine',.62,.14); }
+};
+const PRAISE=['Steady as she goes!','Perfect bearing!','Wind in our sails!','A clean fix!','Right on course!','Smooth sailing!','Well navigated!'];
+const OOPS=['Recalculate the bearing.','Off course — check your working.','The current pushed us wide.','Adjust the heading.'];
+const knots=n=> (n<=0?'drift':n*4+' kn');
+function praise(t){ const p=document.getElementById('praise'); if(!p) return; p.textContent=t; p.style.display='block'; p.style.animation='none'; void p.offsetWidth; p.style.animation='drpop 1.3s ease forwards'; clearTimeout(p._t); p._t=setTimeout(()=>p.style.display='none',1350); }
+function confetti(n){ n=n||120; const c=['#A12A77','#1C7A50','#F1DFA6','#4B6072','#CFE6EE']; for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='cf'; d.style.left=(Math.random()*100)+'vw'; d.style.background=c[i%c.length]; d.style.animationDuration=(2+Math.random()*2)+'s'; d.style.animationDelay=(Math.random()*.5)+'s'; document.body.appendChild(d); setTimeout(()=>d.remove(),5000);} }
+function celebrate(icon,title,sub){ SFX.win(); confetti(130); document.getElementById('cbig').textContent=icon; document.getElementById('ctitle').textContent=title; document.getElementById('csub').textContent=sub; document.getElementById('congrats').classList.add('show'); }
+document.getElementById('cbtn').addEventListener('click',()=>document.getElementById('congrats').classList.remove('show'));
+
+/* ===== Prove it: typed working marked by AI ===== */
+const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PROVE=[
+ {q:'Solve the separable equation $\\dfrac{dy}{dx}=2x$.', ans:'y = x^2 + C'},
+ {q:'Solve $\\dfrac{dy}{dx}=y$.', ans:'y = A e^x'},
+ {q:'Solve the linear equation $\\dfrac{dy}{dx}+y=0$.', ans:'y = A e^{-x}'},
+ {q:"Find the general solution of $y'' - 3y' + 2y = 0$.", ans:'y = A e^{x} + B e^{2x}'},
+ {q:'Solve $\\dfrac{dy}{dx}=y\\cos x$.', ans:'y = A e^{\\sin x}'},
+ {q:"Solve $y'' + 4y = 0$.", ans:'y = A \\cos 2x + B \\sin 2x'}
+];
+let CUR_PROVE=0, PAD=null, PCTX=null, PHIST=[], PDRAWING=false, PINKD=false;
+function renderProve(){
+  S=null; CUR_PROVE=Math.floor(Math.random()*PROVE.length); const p=PROVE[CUR_PROVE];
+  app.innerHTML=`<main class="prove">
+    <div class="bar"><button class="link" data-act="chart">Back to chart</button><span class="tally">Prove it \u00b7 write your working by hand</span></div>
+    <h1 style="font-family:var(--serif);font-style:italic;font-weight:400">Prove it</h1>
+    <p class="lede">Write each step of your solution on the pad, then tap Get feedback. The marker reads your handwriting and tells you how it went. Three significant figures where numbers are needed.</p>
+    <p class="prompt">${p.q}</p>
+    <div class="padwrap"><canvas id="pad" width="800" height="320" aria-label="Handwriting pad"></canvas><span class="padtag">write here</span></div>
+    <div class="actions" style="margin-top:.7rem"><button class="secondary" id="pundo" type="button">\u21b6 Undo</button><button class="secondary" id="pclear" type="button">Clear</button><button class="primary" id="pcheck" data-act="pcheck">Get feedback</button></div>
+    <div id="pfb"></div>
+  </main>`;
+  initPad();
+  settle();
+}
+function initPad(){
+  PAD=document.getElementById('pad'); if(!PAD) return;
+  PCTX=PAD.getContext('2d'); PCTX.lineWidth=3; PCTX.lineCap='round'; PCTX.lineJoin='round'; PCTX.strokeStyle='#101a3a';
+  PHIST=[]; PDRAWING=false; PINKD=false;
+  const pos=e=>{ const r=PAD.getBoundingClientRect(); return {x:(e.clientX-r.left)*(PAD.width/r.width), y:(e.clientY-r.top)*(PAD.height/r.height)}; };
+  PAD.addEventListener('pointerdown',e=>{ PDRAWING=true; PINKD=true; try{ PHIST.push(PCTX.getImageData(0,0,PAD.width,PAD.height)); if(PHIST.length>25) PHIST.shift(); }catch(_){} const p=pos(e); PCTX.beginPath(); PCTX.moveTo(p.x,p.y); try{PAD.setPointerCapture(e.pointerId);}catch(_){} });
+  PAD.addEventListener('pointermove',e=>{ if(!PDRAWING) return; const p=pos(e); PCTX.lineTo(p.x,p.y); PCTX.stroke(); });
+  PAD.addEventListener('pointerup',()=>PDRAWING=false);
+  PAD.addEventListener('pointercancel',()=>PDRAWING=false);
+  document.getElementById('pclear').onclick=()=>{ PCTX.clearRect(0,0,PAD.width,PAD.height); PHIST=[]; PINKD=false; SFX.click(); };
+  document.getElementById('pundo').onclick=()=>{ if(PHIST.length){ PCTX.putImageData(PHIST.pop(),0,0); PINKD=PHIST.length>0; SFX.click(); } };
+}
+async function proveCheck(){
+  const btn=document.getElementById('pcheck');
+  if(!PAD || !PINKD){ praise('Write your working first.'); return; }
+  let img=null; try{ img=PAD.toDataURL('image/png'); }catch(_){}
+  if(!img){ praise('Could not read the pad.'); return; }
+  btn.disabled=true; btn.textContent='Marking\u2026';
+  const p=PROVE[CUR_PROVE];
+  try{
+    const res=await fetch('/practice/check',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({image:img,question:p.q.replace(/\\/g,''),expected:p.ans})});
+    const d=await res.json();
+    const fb=document.getElementById('pfb');
+    if(!d.ok){ fb.innerHTML='<div class="fb bad"><h2>Could not mark</h2><p>'+esc(d.error||'')+'</p></div>'; }
+    else{
+      const ok=d.verdict==='correct';
+      fb.innerHTML='<div class="fb '+(ok?'good':'bad')+'"><h2>'+(ok?'Correct':(d.verdict==='partial'?'Nearly there':'Not quite'))+'</h2><div class="why"><div class="logbook"><b>What the marker read:</b> '+esc(d.transcription||'')+'</div><p>'+esc(d.feedback||'')+'</p></div></div>';
+      if(ok){ SFX.correct(); confetti(90); praise(pick(PRAISE)); } else SFX.wrong();
+      fb.scrollIntoView&&fb.scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
+  }catch(e){ document.getElementById('pfb').innerHTML='<div class="fb bad"><h2>Offline</h2><p>AI marking works on the StudyBuddy site, not offline.</p></div>'; }
+  btn.disabled=false; btn.textContent='Get feedback';
+}
+
+function saveProgress(){ if(S){ progress.current={st:S.st.id,i:S.i,marks:S.marks.slice(),score:S.score,streak:S.streak}; save(); } }
+
+
+function settle(){
+  if(!mathReady) return;
+  app.classList.add('pending');
+  try{ MathJax.typesetClear(); }catch(e){}
+  MathJax.typesetPromise([app]).catch(()=>{}).then(()=>app.classList.remove('pending'));
+}
+document.addEventListener('mathready',()=>{ mathReady=true; settle(); });
+setTimeout(()=>{ if(!mathReady) document.getElementById('mathnote').hidden=false; },9000);
+document.addEventListener('mathready',()=>{ document.getElementById('mathnote').hidden=true; });
+
+const starsHTML=n=>`<span class="stars" role="img" aria-label="${n} of 3 stars">${'★'.repeat(n)}<span class="dim">${'★'.repeat(3-n)}</span></span>`;
+const totalStars=()=>STATIONS.reduce((s,st)=>s+(progress.stars[st.id]||0),0);
+function rankFor(n){ return n>=28?'Master':n>=21?'Chief Officer':n>=13?'Second Officer':n>=6?'Third Officer':'Cadet'; }
+
+/* ---------- chart ---------- */
+const LON0=-78.48,LAT0=18.74,KM=380;
+const PX=lon=>(lon-LON0)*KM, PY=lat=>(LAT0-lat)*KM;
+const COAST=[[-78.37,18.27],[-78.35,18.33],[-78.26,18.42],[-78.17,18.46],[-78.03,18.46],[-77.92,18.49],[-77.78,18.52],[-77.65,18.50],[-77.40,18.48],[-77.24,18.46],[-77.10,18.42],[-76.95,18.41],[-76.89,18.38],[-76.77,18.28],[-76.66,18.24],[-76.45,18.19],[-76.33,18.14],[-76.26,18.03],[-76.18,17.92],[-76.26,17.87],[-76.41,17.88],[-76.56,17.87],[-76.70,17.93],[-76.80,17.95],[-76.88,17.95],[-76.90,17.86],[-77.00,17.90],[-77.11,17.89],[-77.14,17.78],[-77.16,17.71],[-77.25,17.75],[-77.40,17.85],[-77.56,17.86],[-77.72,17.86],[-77.83,17.95],[-77.85,18.02],[-77.97,18.08],[-78.05,18.15],[-78.13,18.21],[-78.26,18.22]];
+const START=[-76.80,17.89];
+const WPS={
+ '1.1':{p:[-76.60,17.80],lx:6,ly:25,a:'end'},
+ '1.2':{p:[-76.38,17.79],lx:-10,ly:26,a:'start'},
+ '1.3':{p:[-76.07,17.93],lx:-10,ly:31,a:'start'},
+ '2.1':{p:[-76.17,18.07],lx:14,ly:5,a:'start'},
+ '2.2':{p:[-76.43,18.27],lx:13,ly:-10,a:'start'},
+ '2.3':{p:[-76.75,18.37],lx:13,ly:-10,a:'start'},
+ '3.1':{p:[-76.90,18.47],lx:13,ly:-10,a:'start'},
+ '3.2':{p:[-77.10,18.51],lx:0,ly:-17,a:'middle'},
+ '3.3':{p:[-77.40,18.57],lx:0,ly:-17,a:'middle'},
+ '3.4':{p:[-77.93,18.58],lx:0,ly:-17,a:'middle'}
+};
+const SOUNDS=[[330,404,'1250'],[440,428,'1810'],[610,424,'2040'],[905,418,'2600'],[215,340,'1120'],[250,412,'1760'],[48,62,'2300'],[305,30,'3100'],[720,42,'5200'],[850,100,'2900'],[955,170,'1900'],[40,262,'980']];
+function chartSVG(){
+  const f=p=>PX(p[0]).toFixed(1)+','+PY(p[1]).toFixed(1);
+  const n=COAST.length,P=COAST.map(c=>[PX(c[0]),PY(c[1])]),g=i=>P[(i+n)%n],xy=q=>q[0].toFixed(1)+','+q[1].toFixed(1);
+  let d='M'+xy(P[0]);
+  for(let i=0;i<n;i++){ const p0=g(i-1),p1=g(i),p2=g(i+1),p3=g(i+2);
+    d+='C'+xy([p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6])+' '+xy([p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6])+' '+xy(p2); }
+  d+='Z';
+  const pts=[START,...STATIONS.map(s=>WPS[s.id].p)];
+  let segs='',reached=0;
+  STATIONS.forEach((s,i)=>{ const done=(progress.stars[s.id]||0)>0; if(done) reached=i+1;
+    segs+=`<path class="course ${done?'':'todo'}" d="M${f(pts[i])}L${f(pts[i+1])}"/>`; });
+  const wps=STATIONS.map((s,i)=>{ const w=WPS[s.id],x=PX(w.p[0]),y=PY(w.p[1]),done=(progress.stars[s.id]||0)>0;
+    return `<g class="wp ${done?'done':''}" data-st="${s.id}"><circle class="ring" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9"/><circle class="dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3"/><text x="${(x+w.lx).toFixed(1)}" y="${(y+w.ly).toFixed(1)}" text-anchor="${w.a}">${s.place}</text></g>`; }).join('');
+  const here=pts[reached],next=pts[Math.min(reached+1,pts.length-1)],prev=pts[Math.max(reached-1,0)];
+  const from=reached<pts.length-1?here:prev,to=reached<pts.length-1?next:here;
+  const ang=Math.atan2(PX(to[0])-PX(from[0]),-(PY(to[1])-PY(from[1])))*180/Math.PI;
+  const ship=`<g transform="translate(${f(here).replace(',',' ')}) rotate(${ang.toFixed(1)})"><path class="ship" d="M0,-13 C5,-7 5.5,3 4.5,10 L-4.5,10 C-5.5,3 -5,-7 0,-13Z"/></g>`;
+  const mer=[-78,-77,-76].map(l=>`<line class="grat" x1="${PX(l)}" y1="0" x2="${PX(l)}" y2="440"/><text class="gratlab" x="${PX(l)-5}" y="14" text-anchor="end">${-l}°W</text>`).join('');
+  const par=`<line class="grat" x1="0" y1="${PY(18).toFixed(1)}" x2="1000" y2="${PY(18).toFixed(1)}"/><text class="gratlab" x="6" y="${(PY(18)-5).toFixed(1)}">18°N</text>`;
+  let rose='<g class="rose" transform="translate(112 362)"><circle r="40"/><circle r="31"/>';
+  for(let a=0;a<360;a+=15){ const r1=a%45===0?24:31,rad=a*Math.PI/180; rose+=`<line x1="${(Math.sin(rad)*r1).toFixed(1)}" y1="${(-Math.cos(rad)*r1).toFixed(1)}" x2="${(Math.sin(rad)*40).toFixed(1)}" y2="${(-Math.cos(rad)*40).toFixed(1)}"/>`; }
+  rose+='<path d="M0,-24 L4,0 L0,24 L-4,0Z M-24,0 L0,-4 L24,0 L0,4Z"/><text x="0" y="-45" text-anchor="middle">N</text></g>';
+  const snd=SOUNDS.map(s=>`<text class="sound" x="${s[0]}" y="${s[1]}">${s[2]}</text>`).join('');
+  return `<svg viewBox="0 0 1000 440" aria-hidden="true">${mer}${par}${snd}${rose}<path class="shoal" d="${d}"/><path class="land" d="${d}"/><text class="town" x="${(PX(-76.80)-8).toFixed(1)}" y="${(PY(17.95)-12).toFixed(1)}" text-anchor="end">Kingston</text><circle cx="${PX(START[0]).toFixed(1)}" cy="${PY(START[1]).toFixed(1)}" r="4" fill="var(--mag)"/>${segs}${wps}${ship}</svg>`;
+}
+function renderChart(){
+  S=null;
+  const tot=totalStars();
+  const legs=[1,2,3].map(l=>{
+    const rows=STATIONS.map((s,i)=>s.leg!==l?'':`<li><button class="row" data-st="${s.id}"><span class="wpn">${i+1}</span><span class="rmain"><span class="sname">${s.name}</span><span class="topic">${s.topic}</span><span class="place">off ${s.place}</span></span>${starsHTML(progress.stars[s.id]||0)}</button></li>`).join('');
+    return `<section class="leg"><h2>Leg ${l}. ${LEGS[l].title}</h2><p class="legsub">${LEGS[l].route}</p><ol class="plan">${rows}</ol></section>`;
+  }).join('');
+  app.innerHTML=`<main class="home">
+    <header class="mast"><h1>Dead Reckoning</h1>
+    <p class="lede">A navigator without a fix works out where the ship is from how fast its position has been changing. That is a differential equation, and so is every problem on this passage from Kingston to Montego Bay.</p></header>
+    <figure class="chart">${chartSVG()}<figcaption>Ten waypoints, five problems at each. Three right reaches the waypoint; five right earns three stars. The problems change every time you sail. Not to be used for navigation.</figcaption></figure>
+    <p class="standing">Rank: <b>${rankFor(tot)}</b>. ${tot} of 30 stars.</p>
+    ${legs}
+    <div class="foot"><span>Waypoints can be sailed in any order.</span><button class="link" data-act="prove">Prove it — show your working</button><button class="link" data-act="reset">Clear my progress</button></div>
+  </main>`;
+  settle();
+}
+
+/* ---------- plots ---------- */
+let PLOT=null;
+function plotSVG(o){
+  const W=600,H=250,L=38,Rt=14,Tp=14,B=30,n=120,T=o.T||6;
+  const ys=[]; for(let i=0;i<=n;i++) ys.push(resp(o.b,o.c,T*i/n));
+  let hi=1.15,lo=-1.05,ticks=[-1,-0.5,0,0.5,1];
+  if(!o.dots){ const mx=Math.max(1,...ys.map(Math.abs)); hi=mx*1.12; lo=Math.min(...ys)<-0.05?-hi:-0.12*hi; const tk=mx<=1.3?1:Math.round(mx); ticks=lo<-0.5*hi?[-tk,0,tk]:[0,tk]; }
+  const px=t=>L+(W-L-Rt)*t/T, py=v=>Tp+(H-Tp-B)*(hi-v)/(hi-lo);
+  const path=(b,c)=>{ let d=''; for(let i=0;i<=n;i++){ const t=T*i/n; d+=(i?'L':'M')+px(t).toFixed(1)+','+py(resp(b,c,t)).toFixed(1); } return d; };
+  let g='';
+  ticks.forEach(v=>{ g+=`<line class="${v===0?'ax':'gr'}" x1="${L}" x2="${W-Rt}" y1="${py(v).toFixed(1)}" y2="${py(v).toFixed(1)}"/><text x="${L-6}" y="${(py(v)+4).toFixed(1)}" text-anchor="end">${v}</text>`; });
+  for(let t=0;t<=T;t++) g+=`<line class="ax" x1="${px(t).toFixed(1)}" x2="${px(t).toFixed(1)}" y1="${H-B}" y2="${H-B+4}"/><text x="${px(t).toFixed(1)}" y="${H-B+17}" text-anchor="middle">${t}</text>`;
+  g+=`<line class="ax" x1="${L}" x2="${L}" y1="${Tp}" y2="${H-B}"/><line class="ax" x1="${L}" x2="${W-Rt}" y1="${H-B}" y2="${H-B}"/><text x="${W-Rt}" y="${H-4}" text-anchor="end">t, seconds</text><text x="${L+6}" y="${Tp+10}">x</text>`;
+  let body;
+  if(o.dots){ let dots=''; for(let i=0;i<=30;i++){ const t=T*i/30; dots+=`<circle class="data" cx="${px(t).toFixed(1)}" cy="${py(resp(o.b,o.c,t)).toFixed(1)}" r="3"/>`; }
+    PLOT={path};
+    body=`<path class="truth" id="truth" d="" /><path class="mine" id="mine" d="${path(o.ub,o.uc)}"/>${dots}`; }
+  else body=`<path class="trace" d="${path(o.b,o.c)}"/>`;
+  return `<svg class="plot" viewBox="0 0 ${W} ${H}" role="img" aria-label="${o.dots?'Logged data points with your adjustable curve':'Logged trace of x against time'}">${g}${body}</svg>`;
+}
+
+/* ---------- station ---------- */
+function startStation(id){
+  const st=STATIONS.find(s=>s.id===id); if(!st) return;
+  S={st,qs:st.round(),i:0,marks:[],score:0,streak:0,answered:false,sel:{},ub:0,uc:1};
+  renderQ(); window.scrollTo(0,0);
+}
+function pipsHTML(){
+  return `<div class="pips">${S.qs.map((q,i)=>`<span class="pip ${i<S.marks.length?(S.marks[i]?'ok':'no'):(i===S.i?'now':'')}"></span>`).join('')}<p class="count">Problem ${Math.min(S.i+1,S.qs.length)} of ${S.qs.length}</p></div>`;
+}
+function renderQ(){
+  const q=S.qs[S.i]; S.answered=false; S.sel={}; S.ub=0; S.uc=1;
+  let body='';
+  if(q.type==='mcq'){
+    body=(q.tex?`<div class="eq">\\[${q.tex}\\]</div>`:'')+(q.note?`<p class="note">${q.note}</p>`:'')+(q.plot?plotSVG(q.plot):'')+
+      `<div class="opts ${q.cols===2?'two':''}">${q.options.map((o,i)=>`<button class="opt" data-i="${i}"><span class="key">${i+1}</span><span class="otx">${o}</span></button>`).join('')}</div>`;
+  } else if(q.type==='panel'){
+    body=`<div class="eq">\\[${q.tex}\\]</div>`+q.rows.map((r,ri)=>`<div class="prow"><span class="plabel">${r.label}</span><div class="seg" role="group" aria-label="${r.label}">${r.opts.map((o,oi)=>`<button class="segb" data-r="${ri}" data-o="${oi}" aria-pressed="false">${o}</button>`).join('')}</div></div>`).join('')+
+      `<div class="after"><button class="primary" data-act="checkpanel" disabled>Check answer</button></div>`;
+  } else if(q.type==='num'){
+    body=`<div class="numrow"><label class="vh" for="ans">Your answer in ${q.unit}</label><input id="ans" inputmode="decimal" autocomplete="off" placeholder="Your answer"><span class="unit">${q.unit}</span><button class="primary" data-act="checknum">Check answer</button></div><p class="hint">Give three significant figures.</p><p class="err" id="numerr" hidden>Enter a number, for example 12.5.</p>`;
+  } else if(q.type==='tune'){
+    body=plotSVG({b:q.b,c:q.c,T:6,dots:true,ub:S.ub,uc:S.uc})+
+      `<div class="sliders"><div class="sl"><label for="sb">Damping b</label><input type="range" id="sb" min="0" max="10" step="0.5" value="${S.ub}"><output id="ob">${S.ub}</output></div>
+       <div class="sl"><label for="sc">Stiffness c</label><input type="range" id="sc" min="1" max="30" step="1" value="${S.uc}"><output id="oc">${S.uc}</output></div></div>
+       <p class="note">Damping <b>b</b> is the water resistance (drag); stiffness <b>c</b> is the hull buoyancy. Fit your curve to the logged data.</p>
+       <div class="readout" id="readout" aria-live="polite"></div>
+       <button class="primary" data-act="checktune">Lock in b and c</button>`;
+  }
+  app.innerHTML=`<main class="station">
+    <div class="bar"><button class="link" data-act="chart">Back to chart</button><span class="tally">Score <b id="score">${S.score}</b> · Ship speed <b id="speed">${knots(S.streak)}</b></span><button class="link" id="drmute" data-act="mute">${MUTED?'🔇 Muted':'🔊 Sound'}</button></div>
+    <div class="where"><span class="place">Waypoint ${STATIONS.indexOf(S.st)+1}, off ${S.st.place}</span><h1>${S.st.name}</h1></div>
+    ${lessonHTML(S.st.id)}
+    ${ytHTML(S.st.id)}
+    <div id="pips">${pipsHTML()}</div>
+    <section class="q"><p class="prompt">${q.prompt}</p>${body}</section>
+    <div id="fb"></div>
+  </main>`;
+  if(q.type==='tune') updateTune();
+  attachLesson(S.st.id);
+  settle();
+  if(q.type==='num'){ const inp=document.getElementById('ans'); inp.addEventListener('keydown',e=>{ if(e.key==='Enter') checkNum(); }); }
+}
+function updateTune(){
+  const q=S.qs[S.i],info=rootInfo(S.ub,S.uc),g=gap(S.ub,S.uc,q.b,q.c);
+  document.getElementById('mine').setAttribute('d',PLOT.path(S.ub,S.uc));
+  document.getElementById('ob').textContent=S.ub; document.getElementById('oc').textContent=S.uc;
+  document.getElementById('readout').innerHTML=`<p class="eqt">${eqText(S.ub,S.uc)}</p><p>b² − 4ac = ${String(info.d).replace('-','−')}, ${info.kind}: ${info.roots}</p><p class="gapline">Average gap between your curve and the data: ${g.toFixed(3)}</p>`;
+}
+function mark(ok,extra){
+  const q=S.qs[S.i]; S.answered=true; S.marks.push(ok);
+  let gain=0; if(ok){ S.streak++; gain=100+Math.min(80,20*(S.streak-1)); S.score+=gain; SFX.correct(); praise(pick(PRAISE)); } else { S.streak=0; SFX.wrong(); praise(pick(OOPS)); }
+  saveProgress();
+  const last=S.i===S.qs.length-1;
+  document.getElementById('score').textContent=S.score;
+  const sp=document.getElementById('speed'); if(sp) sp.textContent=knots(S.streak);
+  document.getElementById('pips').innerHTML=pipsHTML();
+  const head=ok?`Correct <span class="gain">+${gain}${S.streak>1?`, ${S.streak} in a row`:''}</span>`:'Not quite';
+  const why=ok?`<p>${q.explain}</p>`:`<div class="logbook"><b>Captain’s Log:</b> ${q.explain}</div>${extra?`<p>${extra}</p>`:''}`;
+  document.getElementById('fb').innerHTML=`<div class="fb ${ok?'good':'bad'}" role="status"><h2>${head}</h2><div class="why">${why}</div><button class="primary" data-act="next">${last?'See the result':'Next problem'}</button></div>`;
+  settle();
+  const nb=document.querySelector('[data-act="next"]'); if(nb) nb.focus({preventScroll:true});
+  const fb=document.getElementById('fb'); if(fb.scrollIntoView) fb.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function chooseOpt(i){
+  const q=S.qs[S.i]; if(S.answered||q.type!=='mcq') return;
+  const ok=q.accept.includes(i);
+  document.querySelectorAll('.opt').forEach((b,bi)=>{ b.disabled=true;
+    if(q.accept.includes(bi)) b.classList.add('right'); else if(bi===i) b.classList.add('wrong'); else b.classList.add('fade'); });
+  mark(ok);
+}
+function checkPanel(){
+  const q=S.qs[S.i]; if(S.answered) return; let all=true; const missed=[];
+  q.rows.forEach((r,ri)=>{ const chosen=r.opts[S.sel[ri]],good=chosen===r.ans; if(!good){ all=false; missed.push(r.label.toLowerCase()); }
+    document.querySelectorAll(`.segb[data-r="${ri}"]`).forEach((b,oi)=>{ b.disabled=true; if(r.opts[oi]===r.ans) b.classList.add('right'); else if(oi===S.sel[ri]) b.classList.add('wrong'); b.setAttribute('aria-pressed','false'); }); });
+  document.querySelector('[data-act="checkpanel"]').hidden=true;
+  mark(all,all?'':`Check the ${missed.join(' and the ')}: the right settings are marked in green.`);
+}
+function checkNum(){
+  const q=S.qs[S.i]; if(S.answered) return;
+  const inp=document.getElementById('ans'),v=parseFloat(inp.value.replace(/[,\s]/g,''));
+  const err=document.getElementById('numerr');
+  if(!isFinite(v)){ err.hidden=false; inp.focus(); return; }
+  err.hidden=true; inp.disabled=true; document.querySelector('[data-act="checknum"]').disabled=true;
+  const ok=Math.abs(v-q.answer)<=0.015*Math.abs(q.answer)+1e-9;
+  mark(ok,ok?'':`The answer is about ${sig(q.answer)} ${q.unit}.`);
+}
+function checkTune(){
+  const q=S.qs[S.i]; if(S.answered) return;
+  const g=gap(S.ub,S.uc,q.b,q.c),ok=g<0.015;
+  document.getElementById('sb').disabled=true; document.getElementById('sc').disabled=true; document.querySelector('[data-act="checktune"]').hidden=true;
+  if(!ok) document.getElementById('truth').setAttribute('d',PLOT.path(q.b,q.c));
+  const exact=S.ub===q.b&&S.uc===q.c;
+  mark(ok,ok?(exact?'':'Your constants fit the data within tolerance.'):'The dashed green curve shows the fit you were looking for.');
+}
+function nextQ(){
+  if(!S||!S.answered) return;
+  if(S.i<S.qs.length-1){ S.i++; renderQ(); window.scrollTo(0,0); } else renderResult();
+}
+function renderResult(){
+  const n=S.marks.filter(Boolean).length,st=S.st,stars=n>=5?3:n===4?2:n===3?1:0;
+  const prev=progress.stars[st.id]||0;
+  if(stars>prev) progress.stars[st.id]=stars;
+  if(S.score>(progress.best[st.id]||0)) progress.best[st.id]=S.score;
+  save();
+  const idx=STATIONS.indexOf(st),nx=STATIONS[idx+1];
+  const pips=`<div class="pips">${S.marks.map(k=>`<span class="pip ${k?'ok':'no'}"></span>`).join('')}</div>`;
+  const msg=stars===3?'A clean run.':stars===2?'One problem short of three stars.':stars===1?'Reached, with room to tighten up.':'You need three right to reach this waypoint.';
+  app.innerHTML=`<main class="result">
+    <span class="place">Waypoint ${idx+1}, off ${st.place}</span>
+    <h1>${stars?'Waypoint reached':'Not there yet'}</h1>
+    ${starsHTML(stars)}
+    <p class="sum">${n} of ${S.qs.length} correct. Score ${S.score}${(progress.best[st.id]||0)>S.score?`, best ${progress.best[st.id]}`:''}. ${msg}</p>
+    ${pips}
+    <div class="actions">${stars&&nx?`<button class="primary" data-st="${nx.id}">Sail on to ${nx.place}</button>`:''}<button class="${stars&&nx?'secondary':'primary'}" data-st="${st.id}">Sail this waypoint again</button><button class="secondary" data-act="chart">Back to chart</button></div>
+  </main>`;
+  if(stars>0){ celebrate(stars===3?'🏅':'⚓', stars===3?'Three stars earned':'Waypoint reached', `${n} of ${S.qs.length} correct. ${st.place}.`); } else { SFX.wrong(); }
+  progress.current=null; save();
+  S=null; window.scrollTo(0,0);
+  const first=app.querySelector('.actions button'); if(first) first.focus({preventScroll:true});
+}
+
+/* ---------- lesson videos (inline at the top of each waypoint) ---------- */
+function lessonHTML(id){
+  const list=VIDEOS[id]||[]; if(!list.length) return '';
+  const first=list[0];
+  const tabs=list.length>1?`<div class="wlist" role="tablist">${list.map((v,i)=>`<button class="wtab${i===0?' on':''}" data-v="${i}" role="tab">${v[1]}</button>`).join('')}</div>`:'';
+  return `<section class="lesson" data-listlen="${list.length}">
+    <div class="lessonhead"><span class="lessonlab">▶ Watch the lesson</span>${list.length>1?'<span class="lessonhint">pick a method</span>':''}</div>
+    <video class="lessonvid" controls preload="metadata" playsinline src="de/${first[0]}" aria-label="Worked-example lesson"></video>
+    ${tabs}
+    <p class="lessoncap">${first[1]}</p>
+  </section>`;
+}
+function attachLesson(id){
+  const list=VIDEOS[id]||[]; if(list.length<2) return;
+  const sec=app.querySelector('.lesson'); if(!sec) return;
+  const vid=sec.querySelector('.lessonvid'), cap=sec.querySelector('.lessoncap');
+  sec.querySelectorAll('.wtab').forEach(b=>{ b.onclick=()=>{
+    const i=Number(b.dataset.v);
+    sec.querySelectorAll('.wtab').forEach(x=>x.classList.toggle('on',x===b));
+    vid.pause(); vid.src='de/'+list[i][0]; cap.textContent=list[i][1]; vid.load();
+    SFX.tick();
+  }; });
+}
+/* YouTube deeper dives — thumbnails first, iframe only on click (keeps the page light). */
+function ytHTML(id){
+  const list=YT[id]||[]; if(!list.length) return '';
+  const items=list.map(v=>{ const id=v[0], title=v[1]; return `<button class="ytcard" data-yt="${id}" aria-label="Play: ${title}">
+      <span class="ytthumb"><img loading="lazy" src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt=""></span>
+      <span class="yttitle">${title}</span></button>`; }).join('');
+  return `<details class="deeper"><summary>Deeper dive on YouTube<span class="ytcount">${list.length}</span></summary><div class="ytlist">${items}</div></details>`;
+}
+function openYT(btn){
+  const id=btn.dataset.yt; if(!id) return;
+  btn.classList.add('playing');
+  btn.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+  SFX.tick();
+}
+
+/* ---------- events ---------- */
+app.addEventListener('click',e=>{
+  const t=e.target.closest('[data-st],[data-act],.opt,.segb,.ytcard'); if(!t) return;
+  if(t.dataset.st){ startStation(t.dataset.st); return; }
+  if(t.classList.contains('ytcard')){ openYT(t); return; }
+  if(t.classList.contains('opt')){ chooseOpt(Number(t.dataset.i)); return; }
+  if(t.classList.contains('segb')){ if(S.answered) return; const r=t.dataset.r;
+    document.querySelectorAll(`.segb[data-r="${r}"]`).forEach(b=>b.setAttribute('aria-pressed','false'));
+    t.setAttribute('aria-pressed','true'); S.sel[r]=Number(t.dataset.o);
+    document.querySelector('[data-act="checkpanel"]').disabled=Object.keys(S.sel).length<S.qs[S.i].rows.length; return; }
+  const a=t.dataset.act;
+  if(a==='chart'){ progress.current=null; save(); renderChart(); }
+  else if(a==='prove') renderProve();
+  else if(a==='pcheck') proveCheck();
+  else if(a==='mute'){ MUTED=!MUTED; try{localStorage.setItem('dr-mute',MUTED?'1':'0');}catch(e){} const mb=document.getElementById('drmute'); if(mb) mb.textContent=MUTED?'🔇 Muted':'🔊 Sound'; if(!MUTED) SFX.tick(); }
+  else if(a==='next') nextQ();
+  else if(a==='checkpanel') checkPanel();
+  else if(a==='checknum') checkNum();
+  else if(a==='checktune') checkTune();
+  else if(a==='reset'){ if(t.dataset.sure){ progress={stars:{},best:{}}; save(); renderChart(); } else { t.dataset.sure='1'; t.textContent='Press again to clear all stars'; } }
+});
+app.addEventListener('input',e=>{
+  if(!S||S.answered) return;
+  if(e.target.id==='sb'){ S.ub=Number(e.target.value); updateTune(); }
+  if(e.target.id==='sc'){ S.uc=Number(e.target.value); updateTune(); }
+});
+document.addEventListener('keydown',e=>{
+  if(!S||S.answered||e.ctrlKey||e.metaKey||e.altKey) return;
+  const q=S.qs[S.i]; if(q.type!=='mcq') return;
+  if(e.target&&(e.target.tagName==='INPUT')) return;
+  const k=Number(e.key); if(k>=1&&k<=q.options.length){ e.preventDefault(); chooseOpt(k-1); }
+});
+renderChart();
+if(progress.current&&progress.current.st){ const pc=progress.current; startStation(pc.st); S.i=Math.min(pc.i||0,S.qs.length-1); S.marks=(pc.marks||[]).slice(0,S.i); S.score=pc.score||0; S.streak=pc.streak||0; renderQ(); }
+</script>
+</body>
+</html>
