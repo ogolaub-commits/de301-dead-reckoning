@@ -818,7 +818,7 @@ async function proveCheck(){
   btn.disabled=true; btn.textContent='Marking\u2026';
   const p=PROVE[CUR_PROVE];
   try{
-    const res=await fetch('/practice/check',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+    const res=await fetch('https://de-marker.pages.dev/check',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
       body:JSON.stringify({image:img,question:p.q.replace(/\\/g,''),expected:p.ans})});
     const d=await res.json();
     const fb=document.getElementById('pfb');
@@ -829,7 +829,7 @@ async function proveCheck(){
       if(ok){ SFX.correct(); confetti(90); praise(pick(PRAISE)); } else SFX.wrong();
       fb.scrollIntoView&&fb.scrollIntoView({block:'nearest',behavior:'smooth'});
     }
-  }catch(e){ document.getElementById('pfb').innerHTML='<div class="fb bad"><h2>Offline</h2><p>AI marking works on the StudyBuddy site, not offline.</p></div>'; }
+  }catch(e){ document.getElementById('pfb').innerHTML='<div class="fb bad"><h2>Offline</h2><p>AI marking is unavailable right now. Check your connection and try again.</p></div>'; }
   btn.disabled=false; btn.textContent='Get feedback';
 }
 
